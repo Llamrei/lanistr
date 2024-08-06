@@ -92,12 +92,13 @@ class LANISTRMultiModalForPreTraining(nn.Module):
     self.mlm_head = mlm_head(text_encoder.config)
     self.mlm_loss_fcn = nn.CrossEntropyLoss()  # -100 index = padding token
 
-    self.image_encoder.embeddings.mask_token = nn.Parameter(
-        torch.zeros(1, 1, image_encoder.config.hidden_size)
-    )
-    self.mim_head = mim_head(image_encoder.config)
+    if args.image:
+        self.image_encoder.embeddings.mask_token = nn.Parameter(
+            torch.zeros(1, 1, image_encoder.config.hidden_size)
+        )
+        self.mim_head = mim_head(image_encoder.config)
 
-    self.mtm_loss_fcn = MaskedMSELoss(reduction='none')
+        self.mtm_loss_fcn = MaskedMSELoss(reduction='none')
 
   def forward(
       self, batch: Mapping[str, torch.Tensor]
@@ -376,6 +377,8 @@ class LANISTRMultiModalModel(nn.Module):
     self.classifier = classifier
 
     self.target_token_idx = 0
+    self.loss_function = getattr(F, self.args.supervised_loss, "cross_entropy")
+
 
   def forward(self, batch: Mapping[str, torch.Tensor]) -> BaseModelOutput:
 
@@ -448,7 +451,7 @@ class LANISTRMultiModalModel(nn.Module):
     output = self.classifier(mm_out)
 
     ##======================== Supervised loss ==============================##
-    loss = F.cross_entropy(output, batch['labels'])
+    loss = self.loss_function(output, batch['labels'])
 
     return BaseModelOutput(
         logits=output,

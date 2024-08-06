@@ -100,6 +100,14 @@ def get_metrics(args):
         metrics[phase]["ACCURACY"] = torchmetrics.Accuracy(
             task="multiclass", num_classes=args.num_classes
         ).to(args.device)
+    
+    if args.dataset_name.startswith("ca"):
+      metric_names.append("RMSE")
+      for phase in ["train", "test"]:
+        metrics[phase]["RMSE"] = torchmetrics.MeanSquaredError(
+            squared=False
+        ).to(args.device)
+        
 
     elif args.dataset_name.startswith("mimic"):
       metric_names.append("AUROC")

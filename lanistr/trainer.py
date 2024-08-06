@@ -368,9 +368,14 @@ class Trainer:
       loss = output.loss
 
       # measure accuracy and record loss
-      self.metrics["train"][self.args.perf_metric.upper()].update(
-          preds=output.logits, target=inputs["labels"]
-      )
+      if self.args.perf_metric.upper() == "ACCURACY":
+        self.metrics["train"][self.args.perf_metric.upper()].update(
+            preds=output.logits, target=inputs["labels"]
+        )
+      elif self.args.perf_metric.upper() == "RMSE":
+        self.metrics["train"][self.args.perf_metric.upper()].update(
+            preds=output.logits.squeeze(), target=inputs["labels"]
+        )
 
       # compute gradient and do gradient update step
       if self.distributed:
@@ -450,9 +455,14 @@ class Trainer:
         loss = output.loss
 
         # measure accuracy and record loss
-        self.metrics["test"][self.args.perf_metric.upper()].update(
-            preds=output.logits, target=inputs["labels"]
-        )
+        if self.args.perf_metric.upper() == "ACCURACY":
+          self.metrics["test"][self.args.perf_metric.upper()].update(
+              preds=output.logits, target=inputs["labels"]
+          )
+        elif self.args.perf_metric.upper() == "RMSE":
+          self.metrics["test"][self.args.perf_metric.upper()].update(
+              preds=output.logits.squeeze(), target=inputs["labels"]
+          )
 
         if self.distributed:
           self.metrics["test"]["Loss"].update(loss.item())

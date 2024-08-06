@@ -18,9 +18,9 @@ import setuptools
 base_requires = [
     'omegaconf==2.3.0',
     'transformers==4.26.0',
-    'torch==1.11.0+cu113',
-    'torchmetrics==0.9.3',
-    'torchvision==0.12.0+cu113',
+    # 'torch==1.11.0+cu113',
+    # 'torchmetrics==0.9.3',
+    # 'torchvision==0.12.0+cu113',
     'pytz==2021.3',
     'pandas==1.3.5',
     'scikit-learn==1.3.2',
