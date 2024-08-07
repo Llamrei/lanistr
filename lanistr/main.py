@@ -197,7 +197,7 @@ def main_worker(args: omegaconf.DictConfig) -> None:
     if args.do_test:
       if is_main_process():
         test_start = time.time()
-        trainer.test(dataloaders["test"])
+        trainer.test(dataloaders[args.eval_on if args.eval_on else "test"])
         how_long(test_start, "testing the model ")
 
   else:
