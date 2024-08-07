@@ -7,3 +7,8 @@ data/
 
 # Editor
 .vscode/
+
+*.log
+*.egg-info
+*.tar
+.DS_Store
