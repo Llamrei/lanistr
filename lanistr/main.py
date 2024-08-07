@@ -67,7 +67,7 @@ def main() -> None:
       ),
   )
   parser.add_argument(
-    "--eval-on", 
+    "--eval_on", 
     type=str,
     default="test",
     help="Which dataset to evaluate on. Default is test. Only relevant if do_test is true"
@@ -85,6 +85,7 @@ def main() -> None:
   config = omegaconf.OmegaConf.load(flags.config)
   args = omegaconf.OmegaConf.merge(config, overrides)
   args.local_rank = flags.local_rank
+  args.eval_on = flags.eval_on
   args.start_time = datetime.now().strftime("%Y%m%d%H%M%S")
   args.output_dir = os.path.join(args.output_dir, args.start_time)
   if not os.path.exists(args.output_dir):

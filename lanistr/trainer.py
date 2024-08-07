@@ -13,8 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from datetime import datetime
 import logging
 import os
+from pathlib import Path
 from typing import Mapping, Tuple
 
 import numpy as np
@@ -489,10 +491,24 @@ class Trainer:
     Args:
       test_dataloader: The test dataloader.
     """
-    best_checkpoint_path = os.path.join(self.args.output_dir, "model_best.pth.tar")
-    logger.info(f"Loading best checkpoint from {best_checkpoint_path}")
-    best_checkpoint = torch.load(best_checkpoint_path)
-    self.model = load_checkpoint_with_module(self.model, best_checkpoint)
+    save_dir = Path(self.args.output_dir).parent
+    timestamped_savedirs = sorted(list(save_dir.glob("*/")), reverse=True)
+    best_checkpoint = None
+
+    for subfolder in timestamped_savedirs:
+      best_checkpoint_paths = list(subfolder.glob("*best*.pth"))
+      for best_checkpoint_path in best_checkpoint_paths:
+        logger.info(f"Trying to load most recent best checkpoint from {best_checkpoint_path}")
+        try:
+          best_checkpoint = torch.load(best_checkpoint_path)
+          self.model = load_checkpoint_with_module(self.model, best_checkpoint)
+        except:
+          logger.info(f"Failed to load checkpoint {best_checkpoint_path}")
+          continue
+        finally:
+          break
+      if best_checkpoint:
+        break     
 
     results = self.validate(test_dataloader, prefix="TEST ---")
     logger.info(
