@@ -17,6 +17,7 @@ import collections
 import datetime
 import logging
 import os
+from pathlib import Path
 import re
 import shutil
 import time
@@ -469,7 +470,7 @@ class MetricsLogger:
 
 
 def save_checkpoint(
-    model, is_best, file_dir, filename, best_filename="model_best.pth.tar"
+    model, is_best, file_dir, filename, best_suffix="_best"
 ):
   """Save the model.
 
@@ -483,10 +484,10 @@ def save_checkpoint(
   model_to_save = (
       model.module if hasattr(model, "module") else model
   )  # Take care of distributed/parallel training
-  filename = os.path.join(file_dir, filename)
+  filename = Path(file_dir) / f"{filename}_chkpoint.pth"
   torch.save(model_to_save.state_dict(), filename)
   if is_best:
-    shutil.copyfile(filename, os.path.join(file_dir, best_filename))
+    shutil.copyfile(filename, filename.with_name(f"{filename.stem}{best_suffix}.pth"))
 
 
 def load_checkpoint(current_model, best_checkpoint, different_datasets=False):

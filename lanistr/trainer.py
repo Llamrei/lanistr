@@ -72,6 +72,7 @@ class Trainer:
 
     self.mimic = args.dataset_name.startswith("mimic")
     self.amazon = args.dataset_name.startswith("amazon")
+    self.california_housing = args.dataset_name.startswith("ca")
     self.metrics, self.metric_names = get_metrics(args)
 
   def get_optimizer(
@@ -160,8 +161,7 @@ class Trainer:
             self.model,
             is_best,
             file_dir=self.args.output_dir,
-            filename=f"pretrain_multimodal_checkpoint_{epoch}.pth.tar",
-            best_filename="pretrain_multimodal_model_best.pth.tar",
+            filename=f"pretrain_multimodal_{epoch}",
         )
         save_checkpoint_optimizer(
             epoch,
@@ -310,7 +310,7 @@ class Trainer:
             self.model,
             is_best,
             file_dir=self.args.output_dir,
-            filename="checkpoint.pth.tar",
+            filename=self.args.experiment_name,
         )
 
       for metric_name in self.metric_names:
@@ -481,10 +481,9 @@ class Trainer:
     Args:
       test_dataloader: The test dataloader.
     """
-
-    best_checkpoint = torch.load(
-        os.path.join(self.args.output_dir, "model_best.pth.tar")
-    )
+    best_checkpoint_path = os.path.join(self.args.output_dir, "model_best.pth.tar")
+    logger.info(f"Loading best checkpoint from {best_checkpoint_path}")
+    best_checkpoint = torch.load(best_checkpoint_path)
     self.model = load_checkpoint_with_module(self.model, best_checkpoint)
 
     results = self.validate(test_dataloader, prefix="TEST ---")

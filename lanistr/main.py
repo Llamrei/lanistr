@@ -23,6 +23,7 @@ import random
 import time
 import warnings
 
+from datetime import datetime
 from dataset.amazon.load_data import load_amazon
 from dataset.mimic_iv.load_data import load_mimic
 from dataset.california_housing.load_data import load_california
@@ -78,6 +79,10 @@ def main() -> None:
   config = omegaconf.OmegaConf.load(flags.config)
   args = omegaconf.OmegaConf.merge(config, overrides)
   args.local_rank = flags.local_rank
+  args.start_time = datetime.now().strftime("%Y%m%d%H%M%S")
+  args.output_dir = os.path.join(args.output_dir, args.start_time)
+  if not os.path.exists(args.output_dir):
+    os.mkdir(args.output_dir)
 
   # Settings for multi-GPU training:
   # nodes - number of machines, ngpus_per_node - number of GPUs to use per
@@ -189,7 +194,7 @@ def main_worker(args: omegaconf.DictConfig) -> None:
           train_start, f"Train the model for {args.scheduler.num_epochs} epochs"
       )
 
-    elif args.do_test:
+    if args.do_test:
       if is_main_process():
         test_start = time.time()
         trainer.test(dataloaders["test"])

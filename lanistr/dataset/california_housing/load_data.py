@@ -16,6 +16,7 @@ limitations under the License.
 from __future__ import absolute_import
 
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Union
 
 from dataset.amazon.amazon_utils import get_amazon_transforms
@@ -59,8 +60,8 @@ def load_california(
   numerical_cols = ['Total interior livable area']
   text_names = ['Summary']
 
-  total_dataset = pd.read_csv("/home/ma/a/al3615/data/california_house_price/train.pq")
-  with open(f"/home/ma/a/al3615/projects/text_and_tabular/california_house_experiments/indices/{args.split}.json") as f:
+  total_dataset = pd.read_csv(args.ca_data_path)
+  with open(Path(args.ca_indices_folder) / f"{args.split}.json") as f:
     indices = json.load(f)
   train_dataset = total_dataset.loc[indices['train']]
   test_dataset = total_dataset.loc[indices['val']]

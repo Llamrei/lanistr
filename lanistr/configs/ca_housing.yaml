@@ -17,8 +17,11 @@ seed: 2022
 # number of samples in training data to randomly subsample if greater than 0
 sub_samples: 0
 
-do_train: true
-do_test: false
+ca_data_path: /home/ma/a/al3615/data/california_house_price/train.pq
+ca_indices_folder: /home/ma/a/al3615/projects/text_and_tabular/california_house_experiments/indices
+
+# do_train: true
+# do_test: false
 
 dataset_name: ca
 task: finetune
@@ -38,7 +41,7 @@ text_encoder_trainable: false
 mm_encoder_trainable: true
 text_proj_trainable: true
 
-output_dir: ./data/output_dir/ca_housing
+output_dir: ./output_dir/ca_housing
 experiment_name: ca_housing_finetune
 
 test_ratio: 0.1
@@ -78,7 +81,7 @@ mlm_probability: 0.15
 
 # tabular encoder
 tabular_encoder_name: tabnet
-tabular_encoder_trainable: false
+tabular_encoder_trainable: true
 tabular_proj_trainable: true
 tabular_output_dim: 768
 tabular_embedding_dim: 64
@@ -94,4 +97,4 @@ dist_backend: nccl
 ngpus_per_node: 2
 world_size: 1
 nodes: 1
-workers: 16
+workers: 20

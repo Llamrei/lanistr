@@ -14,6 +14,7 @@ limitations under the License.
 """
 
 import os
+from pathlib import Path
 
 from third_party.mvts_transformer.timeseries_encoder import TimeSeriesEncoder
 from third_party.tabnet.tabular_encoder import TabNet
@@ -288,9 +289,18 @@ def build_model(
       )
     elif args.finetune_initialize_from == "random":
       print_only_by_main_process("Randomly initializing the entire model")
+    elif (load_path := Path(args.finetune_initialize_from)).exists():
+      print_only_by_main_process(f"Loading model from {load_path}")
+      loc = "cuda:{}".format(args.device)
+      checkpoint = torch.load(load_path, map_location=loc)
+      pretrain_model = load_checkpoint(
+          pretrain_model,
+          checkpoint,
+          different_datasets=True,
+      )
     else:
       raise ValueError(
-          "finetune_initialize_from should be either pretrain or random"
+          "finetune_initialize_from should be either pretrain, random or a path to a trained model"
       )
 
     classifier = build_projector(
