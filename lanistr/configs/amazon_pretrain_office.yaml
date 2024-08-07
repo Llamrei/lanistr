@@ -43,7 +43,7 @@ image_masking_ratio: 0.5
 data_dir: ./data/APR2018/Office_Products
 image_data_dir: ./data/APR2018/Office_Products/images
 
-output_dir: ./output_dir/
+output_dir: ./output_dir/amazon_pretrain
 experiment_name: pretrain
 
 
@@ -108,8 +108,8 @@ tabular_n_d: 64
 tabular_n_a: 64
 
 # data parallelism
-multiprocessing_distributed: true
+multiprocessing_distributed: false
 dist_backend: nccl
-ngpus_per_node: 8
+ngpus_per_node: 2
 world_size: 1
 workers: 16
