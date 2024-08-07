@@ -67,6 +67,12 @@ def main() -> None:
       ),
   )
   parser.add_argument(
+    "--eval-on", 
+    type=str,
+    default="test",
+    help="Which dataset to evaluate on. Default is test. Only relevant if do_test is true"
+  )
+  parser.add_argument(
       "overrides",
       nargs="*",
       help=(
@@ -197,7 +203,7 @@ def main_worker(args: omegaconf.DictConfig) -> None:
     if args.do_test:
       if is_main_process():
         test_start = time.time()
-        trainer.test(dataloaders[args.eval_on if args.eval_on else "test"])
+        trainer.test(dataloaders[args.eval_on])
         how_long(test_start, "testing the model ")
 
   else:
