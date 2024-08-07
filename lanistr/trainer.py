@@ -274,7 +274,7 @@ class Trainer:
 
     self.optimizer, self.scheduler = self.get_optimizer()
 
-    best_perf = 0
+    best_perf = 0 if self.args.perf_metric.upper() == "ACCURACY" else np.inf
     for epoch in range(self.num_epochs):
       if self.distributed:
         train_dataloader.sampler.set_epoch(epoch)
@@ -288,8 +288,16 @@ class Trainer:
       # evaluate on validation set
       valid_results = self.validate(valid_dataloader)
 
-      is_best = valid_results[self.args.perf_metric.upper()] > best_perf
-      best_perf = max(valid_results[self.args.perf_metric.upper()], best_perf)
+      if self.args.perf_metric.upper() == "ACCURACY":
+        is_best = valid_results[self.args.perf_metric.upper()] > best_perf
+        best_perf = max(valid_results[self.args.perf_metric.upper()], best_perf)
+      elif self.args.perf_metric.upper() == "RMSE":
+        is_best = valid_results[self.args.perf_metric.upper()] < best_perf
+        best_perf = min(valid_results[self.args.perf_metric.upper()], best_perf)
+      else:
+        raise NotImplementedError(
+            f"Performance metric {self.args.perf_metric.upper()} not implemented"
+        )
 
       print_performance_by_main_process(
           epoch,
