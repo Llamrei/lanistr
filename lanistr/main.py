@@ -30,6 +30,7 @@ from dataset.california_housing.load_data import load_california
 import numpy as np
 import omegaconf
 import torch
+from torch.profiler import profile, record_function, ProfilerActivity
 from trainer import Trainer
 import transformers
 from utils.common_utils import how_long
@@ -83,6 +84,7 @@ def main() -> None:
   args.output_dir = os.path.join(args.output_dir, args.start_time)
   if not os.path.exists(args.output_dir):
     os.mkdir(args.output_dir)
+  args.profile = args.get("profile", False)
 
   # Settings for multi-GPU training:
   # nodes - number of machines, ngpus_per_node - number of GPUs to use per
@@ -166,13 +168,20 @@ def main_worker(args: omegaconf.DictConfig) -> None:
   dataset = load_dataset(args, tokenizer)
   how_long(tic)
 
-  # Load model and parallelize it
-  model = build_model(
-      args,
-      tabular_data_information=dataset["tabular_data_information"],
-  )
-  args, model = setup_model(args, model)
+  def _build_and_setup():
+    model = build_model(
+        args,
+        tabular_data_information=dataset["tabular_data_information"],
+    )
+    return setup_model(args, model)
 
+  if args.profile:
+    with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+      with record_function("build_model"):
+        args, model = _build_and_setup()
+    prof.export_chrome_trace(f"profile_setup_{args.task}.json")
+  else:
+    args, model = _build_and_setup()
   # Create the trainer and generate data loaders
   trainer = Trainer(model, args)
   dataloaders = generate_loaders(args, dataset)

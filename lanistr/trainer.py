@@ -20,6 +20,7 @@ from typing import Mapping, Tuple
 import numpy as np
 import omegaconf
 import torch
+from torch.profiler import profile, record_function, ProfilerActivity
 import tqdm
 import transformers
 from utils.common_utils import get_metrics
@@ -274,22 +275,34 @@ class Trainer:
 
     self.optimizer, self.scheduler = self.get_optimizer()
 
-    best_perf = 0
+    best_perf = 0 if self.args.perf_metric.upper() == "ACCURACY" else np.inf
     for epoch in range(self.num_epochs):
       if self.distributed:
         train_dataloader.sampler.set_epoch(epoch)
 
       if epoch > 0:
         self.scheduler.step()  # Update learning rate schedule
-
+      
       # train for one epoch
-      train_results = self.train_epoch(train_dataloader)
+      if (self.args.profile) and (epoch == 0) and (not self.distributed):
+        with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+          with record_function("train_step"):
+            train_results = self.train_epoch(train_dataloader)
+        prof.export_chrome_trace(
+            os.path.join(self.args.output_dir, f"profile_epoch_{epoch}.json")
+        )
+      else:
+        train_results = self.train_epoch(train_dataloader)
 
       # evaluate on validation set
       valid_results = self.validate(valid_dataloader)
 
-      is_best = valid_results[self.args.perf_metric.upper()] > best_perf
-      best_perf = max(valid_results[self.args.perf_metric.upper()], best_perf)
+      if self.args.perf_metric.upper() == "ACCURACY":
+        is_best = valid_results[self.args.perf_metric.upper()] > best_perf
+        best_perf = max(valid_results[self.args.perf_metric.upper()], best_perf)
+      elif self.args.perf_metric.upper() == "RMSE":
+        is_best = valid_results[self.args.perf_metric.upper()] < best_perf
+        best_perf = min(valid_results[self.args.perf_metric.upper()], best_perf)
 
       print_performance_by_main_process(
           epoch,
