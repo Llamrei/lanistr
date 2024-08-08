@@ -73,6 +73,11 @@ def main() -> None:
     help="Which dataset to evaluate on. Default is test. Only relevant if do_test is true"
   )
   parser.add_argument(
+    "--debug",
+    action="store_true",
+    help="If true, will run in debug mode"
+  )
+  parser.add_argument(
       "overrides",
       nargs="*",
       help=(
@@ -86,10 +91,14 @@ def main() -> None:
   args = omegaconf.OmegaConf.merge(config, overrides)
   args.local_rank = flags.local_rank
   args.eval_on = flags.eval_on
-  args.start_time = datetime.now().strftime("%Y%m%d%H%M%S")
-  args.output_dir = os.path.join(args.output_dir, args.start_time)
+  args.output_dir = os.path.join(args.output_dir, args.experiment_name)
+  if flags.debug:
+    args.start_time = datetime.now().strftime("%Y%m%d%H%M%S")
+    args.output_dir = os.path.join(args.output_dir, f"DEBUG_{args.start_time}")
+    logger.info(f"Debug mode: output_dir is {args.output_dir}")
   if not os.path.exists(args.output_dir):
     os.mkdir(args.output_dir)
+
 
   # Settings for multi-GPU training:
   # nodes - number of machines, ngpus_per_node - number of GPUs to use per
@@ -195,6 +204,12 @@ def main_worker(args: omegaconf.DictConfig) -> None:
 
   elif args.task == "finetune":
     if args.do_train:
+      # Check if any checkpoints already exist in the output dir
+      if pathlib.Path(args.output_dir).glob("**/*best*.pth") and not pathlib.Path(args.finetune_initialize_from).exists():
+        raise ValueError((
+          "Best checkpoints already exist in the output directory. "
+          "Please move or delete them before retraining; "
+          "or specify a checkpoint to start training using finetune_intialize_from."))
       train_start = time.time()
       trainer.train(dataloaders)
       how_long(

@@ -212,11 +212,11 @@ def build_model(
     )
 
     if args.pretrain_resume:
-      latest_checkpoint_path = os.path.join(
-          args.output_dir,
-          f"pretrain_multimodal_checkpoint_{args.pretrain_initialize_from_epoch}.pth.tar",
-      )
+      latest_checkpoint_path = next(iter(Path(args.output_dir).glob("**/pretrain*chkpoint.pth")))
       if os.path.exists(latest_checkpoint_path):
+        print_only_by_main_process(
+            "Initializing the entire model from previous pretrain"
+        )
         loc = "cuda:{}".format(args.device)
         latest_checkpoint = torch.load(latest_checkpoint_path, map_location=loc)
       else:
@@ -227,7 +227,7 @@ def build_model(
       multimodal_model = load_checkpoint(
           multimodal_model,
           latest_checkpoint,
-          different_datasets=True if args.dataset_name == "amazon" else False,
+          different_datasets=True, # FIXME: This and all similar areas need to be reworked to check dataset
       )
     else:
       print_only_by_main_process("Randomly initializing the entire model")
@@ -271,15 +271,13 @@ def build_model(
     )
 
     if args.finetune_initialize_from == "pretrain":
-      best_checkpoint_path = os.path.join(
-          args.output_dir, "pretrain_multimodal_model_best.pth.tar"
-      )
+      best_checkpoint_path = next(iter(Path(args.output_dir).glob("**/*best*.pth")))
       if os.path.exists(best_checkpoint_path):
         loc = "cuda:{}".format(args.device)
         best_checkpoint = torch.load(best_checkpoint_path, map_location=loc)
       else:
         raise FileNotFoundError(
-            f"Pretrained checkpoint {best_checkpoint_path} not found. Pretrain"
+            f"Pretrained checkpoint `{best_checkpoint_path}` not found. Pretrain"
             " first by passing task=pretrain as an argument"
         )
       pretrain_model = load_checkpoint(

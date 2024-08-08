@@ -89,8 +89,9 @@ class LANISTRMultiModalForPreTraining(nn.Module):
     self.mmm_loss = NegativeCosineSimilarityLoss
     self.target_token_idx = 0
 
-    self.mlm_head = mlm_head(text_encoder.config)
-    self.mlm_loss_fcn = nn.CrossEntropyLoss()  # -100 index = padding token
+    if args.text:
+        self.mlm_head = mlm_head(text_encoder.config)
+        self.mlm_loss_fcn = nn.CrossEntropyLoss()  # -100 index = padding token
 
     if args.image:
         self.image_encoder.embeddings.mask_token = nn.Parameter(
@@ -111,12 +112,14 @@ class LANISTRMultiModalForPreTraining(nn.Module):
     Returns:
       LANISTRMultiModalForPreTrainingOutput
     """
-    loss_mlm = torch.zeros(1).to(self.args.device)
-    loss_mim = torch.zeros(1).to(self.args.device)
-    loss_mtm = torch.zeros(1).to(self.args.device)
-    loss_mfm = torch.zeros(1).to(self.args.device)
+    # Handle DataParallel allocation
+    running_device = next(iter(batch.values())).device
+    loss_mlm = torch.zeros(1).to(running_device)
+    loss_mim = torch.zeros(1).to(running_device)
+    loss_mtm = torch.zeros(1).to(running_device)
+    loss_mfm = torch.zeros(1).to(running_device)
 
-    loss = torch.zeros(1).to(self.args.device)
+    loss = torch.zeros(1).to(running_device)
 
     embeds = []
     masked_embeds = []
@@ -131,7 +134,7 @@ class LANISTRMultiModalForPreTraining(nn.Module):
       input_ids = batch['input_ids'].clone()
       mlm_labels = input_ids.clone()
       # create random array of floats with equal dimensions to input_ids tensor
-      rand = torch.rand(input_ids.shape).to(self.args.device)
+      rand = torch.rand(input_ids.shape).to(running_device)
 
       # create mask array
       mask_arr = (
@@ -140,7 +143,7 @@ class LANISTRMultiModalForPreTraining(nn.Module):
           * (input_ids != 102)
           * (input_ids != 0)
       )
-      mask_arr = mask_arr.to(self.args.device)
+      mask_arr = mask_arr.to(running_device)
 
       selection = [
           torch.flatten(mask_arr[i].nonzero()).tolist()

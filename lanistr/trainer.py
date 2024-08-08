@@ -106,19 +106,16 @@ class Trainer:
 
     # if resume,load optimizer and scheduler from pretrain checkpoint
     if self.args.pretrain_resume:
-      latest_checkpoint_path = os.path.join(
-          self.args.output_dir,
-          f"pretrain_multimodal_checkpoint_optimizer_{self.args.pretrain_initialize_from_epoch}.pth.tar",
-      )
-      if os.path.exists(latest_checkpoint_path):
+      latest_optimiser_checkpoint_path = next(iter(Path(self.args.output_dir).glob("**/pretrain*optimizer.pth")))
+      if os.path.exists(latest_optimiser_checkpoint_path):
         print_only_by_main_process(
-            "Initializing the entire model from previous pretrain"
+            "Initializing the optimizer from previous pretrain"
         )
         loc = "cuda:{}".format(self.args.device)
-        latest_checkpoint = torch.load(latest_checkpoint_path, map_location=loc)
+        latest_checkpoint = torch.load(latest_optimiser_checkpoint_path, map_location=loc)
       else:
         raise FileNotFoundError(
-            f"Pretrained checkpoint {latest_checkpoint_path} not found."
+            f"Pretrained checkpoint {latest_optimiser_checkpoint_path} not found."
             " Pretrain first by passing task=pretrain as an argument"
         )
       self.optimizer.load_state_dict(latest_checkpoint["optimizer"])
@@ -163,7 +160,7 @@ class Trainer:
             self.model,
             is_best,
             file_dir=self.args.output_dir,
-            filename=f"pretrain_multimodal_{epoch}",
+            filename=f"pretrain",
         )
         save_checkpoint_optimizer(
             epoch,
@@ -172,9 +169,8 @@ class Trainer:
             is_best,
             file_dir=self.args.output_dir,
             filename=(
-                f"pretrain_multimodal_checkpoint_optimizer_{epoch}.pth.tar"
+                f"pretrain"
             ),
-            best_filename="pretrain_multimodal_optimizer_best.pth.tar",
         )
 
       for metric_name in self.metric_names:
@@ -320,7 +316,7 @@ class Trainer:
             self.model,
             is_best,
             file_dir=self.args.output_dir,
-            filename=self.args.experiment_name,
+            filename="finetune",
         )
 
       for metric_name in self.metric_names:
@@ -491,24 +487,20 @@ class Trainer:
     Args:
       test_dataloader: The test dataloader.
     """
-    save_dir = Path(self.args.output_dir).parent
-    timestamped_savedirs = sorted(list(save_dir.glob("*/")), reverse=True)
+    save_dir = Path(self.args.output_dir)
     best_checkpoint = None
 
-    for subfolder in timestamped_savedirs:
-      best_checkpoint_paths = list(subfolder.glob("*best*.pth"))
-      for best_checkpoint_path in best_checkpoint_paths:
-        logger.info(f"Trying to load most recent best checkpoint from {best_checkpoint_path}")
-        try:
-          best_checkpoint = torch.load(best_checkpoint_path)
-          self.model = load_checkpoint_with_module(self.model, best_checkpoint)
-        except:
-          logger.info(f"Failed to load checkpoint {best_checkpoint_path}")
-          continue
-        finally:
-          break
-      if best_checkpoint:
-        break     
+    best_checkpoint_paths = list(save_dir.glob("*best*.pth"))
+    for best_checkpoint_path in best_checkpoint_paths:
+      logger.info(f"Trying to load best checkpoint from {best_checkpoint_path}")
+      try:
+        best_checkpoint = torch.load(best_checkpoint_path)
+        self.model = load_checkpoint_with_module(self.model, best_checkpoint)
+      except:
+        logger.info(f"Failed to load checkpoint {best_checkpoint_path}")
+        continue
+      finally:
+        break  
 
     results = self.validate(test_dataloader, prefix="TEST ---")
     logger.info(

@@ -272,7 +272,7 @@ def save_checkpoint_optimizer(
     is_best,
     file_dir,
     filename,
-    best_filename="pretrain_optimizer_best.pth.tar",
+    best_suffix="_best",
 ):
   """Save the optimizer.
 
@@ -285,17 +285,17 @@ def save_checkpoint_optimizer(
     filename: name of the file to save the model
     best_filename: name of the file to save the best model
   """
-  filename = os.path.join(file_dir, filename)
+  savepath = os.path.join(file_dir, f"{filename}_optimizer.pth")
   torch.save(
       {
           "epoch": epoch,
           "optimizer": optimizer.state_dict(),
           "scheduler": scheduler.state_dict(),
       },
-      filename,
+      savepath,
   )
   if is_best:
-    shutil.copyfile(filename, os.path.join(file_dir, best_filename))
+    shutil.copyfile(savepath, os.path.join(file_dir, f"{filename}_optimizer{best_suffix}.pth"))
 
 
 def print_performance_by_main_process(
