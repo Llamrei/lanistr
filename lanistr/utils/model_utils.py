@@ -271,7 +271,8 @@ def build_model(
     )
 
     if args.finetune_initialize_from == "pretrain":
-      best_checkpoint_path = next(iter(Path(args.output_dir).glob("**/*best*.pth")))
+      best_checkpoint_path = next(iter(Path(args.output_dir).glob("**/pretrain_chkpoint_best.pth")))
+      print_only_by_main_process(f"Loading model from {best_checkpoint_path}")
       if os.path.exists(best_checkpoint_path):
         loc = "cuda:{}".format(args.device)
         best_checkpoint = torch.load(best_checkpoint_path, map_location=loc)

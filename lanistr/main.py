@@ -205,9 +205,9 @@ def main_worker(args: omegaconf.DictConfig) -> None:
   elif args.task == "finetune":
     if args.do_train:
       # Check if any checkpoints already exist in the output dir
-      if pathlib.Path(args.output_dir).glob("**/*best*.pth") and not pathlib.Path(args.finetune_initialize_from).exists():
+      if (paths:=list(pathlib.Path(args.output_dir).glob("**/finetune*best*.pth"))) and not pathlib.Path(args.finetune_initialize_from).exists():
         raise ValueError((
-          "Best checkpoints already exist in the output directory. "
+          f"Best checkpoints already exist in the output directory. {str(list(paths))}\n"
           "Please move or delete them before retraining; "
           "or specify a checkpoint to start training using finetune_intialize_from."))
       train_start = time.time()

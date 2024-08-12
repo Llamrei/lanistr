@@ -491,6 +491,10 @@ class Trainer:
     best_checkpoint = None
 
     best_checkpoint_paths = list(save_dir.glob("*best*.pth"))
+    # Preference for finetune results over pretrain results
+    best_checkpoint_paths = sorted(
+        best_checkpoint_paths, key=lambda x: "finetune" in x.name, reverse=True
+    )
     for best_checkpoint_path in best_checkpoint_paths:
       logger.info(f"Trying to load best checkpoint from {best_checkpoint_path}")
       try:
