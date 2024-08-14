@@ -91,8 +91,9 @@ def main() -> None:
   args = omegaconf.OmegaConf.merge(config, overrides)
   args.local_rank = flags.local_rank
   args.eval_on = flags.eval_on
+  args.debug = flags.debug
   args.output_dir = os.path.join(args.output_dir, args.experiment_name)
-  if flags.debug:
+  if args.debug:
     args.start_time = datetime.now().strftime("%Y%m%d%H%M%S")
     args.output_dir = os.path.join(args.output_dir, f"DEBUG_{args.start_time}")
     logger.info(f"Debug mode: output_dir is {args.output_dir}")
@@ -155,13 +156,22 @@ def main_worker(args: omegaconf.DictConfig) -> None:
       if not args.experiment_name
       else args.experiment_name + ".log"
   )
+
+  if args.local_rank in [-1, 0]:
+    if args.debug:
+      logging_level = logging.DEBUG
+    else:
+      logging_level = logging.INFO
+  else:
+    logging_level = logging.WARN
+
   logging.basicConfig(
       filename=os.path.join(args.output_dir, log_name)
       if args.local_rank in [-1, 0]
       else None,
       format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
       datefmt="%m/%d/%Y %H:%M:%S",
-      level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN,
+      level=logging_level,
   )
 
   logger.warning(

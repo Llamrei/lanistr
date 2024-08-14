@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from dataset.amazon.amazon_utils import get_amazon_transforms
+from dataset.amazon.amazon_utils import encode_tabular_features, get_amazon_transforms
 from dataset.amazon.amazon_utils import get_train_and_test_splits
 from dataset.amazon.amazon_utils import load_multimodal_data
 from dataset.amazon.amazon_utils import preprocess_amazon_tabular_features
@@ -72,7 +72,7 @@ def load_california(
   total_dataset[text_names] = total_dataset[text_names].fillna('')
 
   dataset, cat_idxs, cat_dims, input_dim = (
-      preprocess_amazon_tabular_features(
+      encode_tabular_features(
           data=total_dataset,
           categorical_cols=categorical_cols,
           numerical_cols=numerical_cols,
