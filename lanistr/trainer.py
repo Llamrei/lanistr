@@ -182,7 +182,7 @@ class Trainer:
         "Pretraining ends for lanistr. Best epoch was at epoch=%d", best_epoch
     )
     print_only_by_main_process(
-        "Pretraining ends for lanistr. Best epoch was at epoch=%d", best_epoch
+        "Pretraining ends for lanistr. Best epoch was at epoch=%d".format(best_epoch)
     )
 
   def pretrain_epoch(
