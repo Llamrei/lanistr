@@ -114,7 +114,8 @@ class LANISTRMultiModalForPreTraining(nn.Module):
     Returns:
       LANISTRMultiModalForPreTrainingOutput
     """
-    # Handle DataParallel allocation
+    # Handle DataParallel allocation - we want the input data, model and 
+    # loss to be on the same device; first two handled but not the loss
     running_device = next(iter(batch.values())).device
     loss_mlm = torch.zeros(1).to(running_device)
     loss_mim = torch.zeros(1).to(running_device)
