@@ -13,6 +13,7 @@
 # limitations under the License.
 
 seed: 2022
+split: 1
 
 # number of samples in training data to randomly subsample if greater than 0
 sub_samples: 0
@@ -42,7 +43,7 @@ mm_encoder_trainable: true
 text_proj_trainable: true
 
 output_dir: ./output_dir/ca_housing
-experiment_name: ca_housing_pretrain
+experiment_name: ca_housing_pretrain_1
 
 test_ratio: 0.1
 
