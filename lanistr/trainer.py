@@ -109,7 +109,7 @@ class Trainer:
       )
       if os.path.exists(latest_checkpoint_path):
         print_only_by_main_process(
-            "Initializing the entire model from previous pretrain"
+            "Initializing the optimizer from previous pretrain"
         )
         loc = "cuda:{}".format(self.args.device)
         latest_checkpoint = torch.load(latest_checkpoint_path, map_location=loc)
