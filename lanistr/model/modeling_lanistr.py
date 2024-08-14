@@ -90,16 +90,18 @@ class LANISTRMultiModalForPreTraining(nn.Module):
     self.target_token_idx = 0
 
     if args.text:
+        # Dont want to break if text is both not used and not configured
         self.mlm_head = mlm_head(text_encoder.config)
         self.mlm_loss_fcn = nn.CrossEntropyLoss()  # -100 index = padding token
 
     if args.image:
+        # Dont want to break if image is both not used and not configured
         self.image_encoder.embeddings.mask_token = nn.Parameter(
             torch.zeros(1, 1, image_encoder.config.hidden_size)
         )
         self.mim_head = mim_head(image_encoder.config)
 
-        self.mtm_loss_fcn = MaskedMSELoss(reduction='none')
+    self.mtm_loss_fcn = MaskedMSELoss(reduction='none')
 
   def forward(
       self, batch: Mapping[str, torch.Tensor]
