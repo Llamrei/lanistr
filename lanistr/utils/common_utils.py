@@ -272,7 +272,6 @@ def save_checkpoint_optimizer(
     is_best,
     file_dir,
     filename,
-    best_suffix="_best",
 ):
   """Save the optimizer.
 
@@ -295,7 +294,7 @@ def save_checkpoint_optimizer(
       savepath,
   )
   if is_best:
-    shutil.copyfile(savepath, os.path.join(file_dir, f"{filename}_optimizer{best_suffix}.pth"))
+    shutil.copyfile(savepath, os.path.join(file_dir, f"{filename}_optimizer_best.pth"))
 
 
 def print_performance_by_main_process(
@@ -470,7 +469,7 @@ class MetricsLogger:
 
 
 def save_checkpoint(
-    model, is_best, file_dir, filename, best_suffix="_best"
+    model, is_best, file_dir, filename
 ):
   """Save the model.
 
@@ -484,10 +483,10 @@ def save_checkpoint(
   model_to_save = (
       model.module if hasattr(model, "module") else model
   )  # Take care of distributed/parallel training
-  filename = Path(file_dir) / f"{filename}_chkpoint.pth"
-  torch.save(model_to_save.state_dict(), filename)
+  savepath = Path(file_dir) / f"{filename}_chkpoint.pth"
+  torch.save(model_to_save.state_dict(), savepath)
   if is_best:
-    shutil.copyfile(filename, filename.with_name(f"{filename.stem}{best_suffix}.pth"))
+    shutil.copyfile(filename, filename.with_name(f"{filename}_chkpoint_best.pth"))
 
 
 def load_checkpoint(current_model, best_checkpoint, different_datasets=False):

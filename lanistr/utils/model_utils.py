@@ -212,18 +212,19 @@ def build_model(
     )
 
     if args.pretrain_resume:
-      latest_checkpoint_path = next(iter(Path(args.output_dir).glob("**/pretrain*chkpoint.pth")))
-      if os.path.exists(latest_checkpoint_path):
-        print_only_by_main_process(
-            "Initializing the entire model from previous pretrain"
-        )
-        loc = "cuda:{}".format(args.device)
-        latest_checkpoint = torch.load(latest_checkpoint_path, map_location=loc)
-      else:
+      try:
+        latest_checkpoint_path = next(iter(Path(args.output_dir).glob("**/pretrain*chkpoint.pth")))
+      except StopIteration:
         raise FileNotFoundError(
-            f"Pretrained checkpoint {latest_checkpoint_path} not found."
-            " Pretrain first by passing task=pretrain as an argument"
-        )
+                    f"Pretrained checkpoint {latest_checkpoint_path} not found."
+                    " Pretrain first by passing task=pretrain as an argument"
+                )
+      print_only_by_main_process(
+          "Initializing the entire model from newest previous pretrain"
+      )
+      loc = "cuda:{}".format(args.device)
+      latest_checkpoint = torch.load(latest_checkpoint_path, map_location=loc)
+        
       multimodal_model = load_checkpoint(
           multimodal_model,
           latest_checkpoint,

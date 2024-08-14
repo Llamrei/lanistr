@@ -270,9 +270,20 @@ class Trainer:
     train_dataloader = dataloaders["train"]
     valid_dataloader = dataloaders["valid"]
 
+    metric = self.args.perf_metric.upper()
+
+    if metric not in ["ACCURACY", "RMSE"]:
+      raise NotImplementedError(
+          f"Performance metric {metric} not implemented"
+      )
+
     self.optimizer, self.scheduler = self.get_optimizer()
 
-    best_perf = 0 if self.args.perf_metric.upper() == "ACCURACY" else np.inf
+    if metric == "ACCURACY":
+      best_perf = 0
+    elif metric == "RMSE":
+      best_perf = np.inf
+
     for epoch in range(self.num_epochs):
       if self.distributed:
         train_dataloader.sampler.set_epoch(epoch)
@@ -286,16 +297,12 @@ class Trainer:
       # evaluate on validation set
       valid_results = self.validate(valid_dataloader)
 
-      if self.args.perf_metric.upper() == "ACCURACY":
-        is_best = valid_results[self.args.perf_metric.upper()] > best_perf
-        best_perf = max(valid_results[self.args.perf_metric.upper()], best_perf)
-      elif self.args.perf_metric.upper() == "RMSE":
-        is_best = valid_results[self.args.perf_metric.upper()] < best_perf
-        best_perf = min(valid_results[self.args.perf_metric.upper()], best_perf)
-      else:
-        raise NotImplementedError(
-            f"Performance metric {self.args.perf_metric.upper()} not implemented"
-        )
+      if metric == "ACCURACY":
+        is_best = valid_results[metric] > best_perf
+        best_perf = max(valid_results[metric], best_perf)
+      elif metric == "RMSE":
+        is_best = valid_results[metric] < best_perf
+        best_perf = min(valid_results[metric], best_perf)
 
       print_performance_by_main_process(
           epoch,
@@ -305,7 +312,7 @@ class Trainer:
           valid_results,
           is_best,
           best_perf,
-          metric_name=self.args.perf_metric.upper(),
+          metric_name=metric,
       )
 
       if not self.multiprocessing_distributed or (
@@ -379,6 +386,7 @@ class Trainer:
             preds=output.logits, target=inputs["labels"]
         )
       elif self.args.perf_metric.upper() == "RMSE":
+        # Assumes labels are shape (Batch,) and num_classes is set to 1
         self.metrics["train"][self.args.perf_metric.upper()].update(
             preds=output.logits.squeeze(), target=inputs["labels"]
         )
@@ -487,10 +495,10 @@ class Trainer:
     Args:
       test_dataloader: The test dataloader.
     """
-    save_dir = Path(self.args.output_dir)
+    output_dir = Path(self.args.output_dir)
     best_checkpoint = None
 
-    best_checkpoint_paths = list(save_dir.glob("*best*.pth"))
+    best_checkpoint_paths = list(output_dir.glob("*chkpoint_best.pth"))
     # Preference for finetune results over pretrain results
     best_checkpoint_paths = sorted(
         best_checkpoint_paths, key=lambda x: "finetune" in x.name, reverse=True
