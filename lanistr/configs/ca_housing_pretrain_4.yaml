@@ -1,0 +1,111 @@
+# Copyright 2024 Google LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+seed: 2022
+split: 4
+
+# number of samples in training data to randomly subsample if greater than 0
+sub_samples: 0
+
+ca_data_path: /home/ma/a/al3615/data/california_house_price/train.pq
+ca_indices_folder: /home/ma/a/al3615/projects/text_and_tabular/california_house_experiments/indices
+
+# do_train: true
+# do_test: false
+
+dataset_name: ca
+task: finetune
+num_classes: 1
+perf_metric: RMSE
+supervised_loss: mse_loss
+
+# modalities presence
+image: false
+text: true
+time: false
+tab: true
+
+finetune_initialize_from: pretrain
+text_encoder_trainable: false
+
+mm_encoder_trainable: true
+text_proj_trainable: true
+
+output_dir: ./output_dir/ca_housing
+experiment_name: ca_housing_pretrain_4
+
+test_ratio: 0.1
+
+train_batch_size: 128
+eval_batch_size: 64
+test_batch_size: 64
+
+scheduler:
+  num_epochs: 500
+  warmup_epochs: 5
+
+optimizer:
+  learning_rate: 0.0001
+  weight_decay: 0.02
+  clip_value: 5.0
+
+mm_hidden_dim: 2048
+mm_output_dim: 2048
+mm_emmbedding_dim: 768  # this is the embedding size of lanistr
+
+# simsiam pretraining projector and predictor
+projection_type: SimSiam
+predictor_hidden_dim: 512
+predictor_out_dim: 2048
+
+# unimodal encoders projection dim
+projection_dim: 768
+
+classifier_hidden_dim: 768
+
+text_encoder_name: bert-base-uncased
+max_token_length: 512
+text_embedding_dim: 768
+
+mlm_probability: 0.15
+
+# tabular encoder
+tabular_encoder_name: tabnet
+tabular_encoder_trainable: true
+tabular_proj_trainable: true
+tabular_output_dim: 768
+tabular_embedding_dim: 64
+tabular_pretraining_ratio: 0.15
+tabular_cat_emb_dim: 3
+tabular_mask_type: sparsemax
+tabular_n_d: 64
+tabular_n_a: 64
+
+# data parallelism
+multiprocessing_distributed: false
+dist_backend: nccl
+ngpus_per_node: 2
+world_size: 1
+nodes: 1
+workers: 20
+
+# Pretrarining loss weights
+lambda_mim: 1.0
+lambda_mlm: 1.0
+lambda_mtm: 0.1
+lambda_mmm: 1.0
+lambda_mfm: 0.01
+
+pretrain_resume: true
+pretrain_initialize_from_epoch: 0

@@ -486,7 +486,7 @@ def save_checkpoint(
   savepath = Path(file_dir) / f"{filename}_chkpoint.pth"
   torch.save(model_to_save.state_dict(), savepath)
   if is_best:
-    shutil.copyfile(filename, filename.with_name(f"{filename}_chkpoint_best.pth"))
+    shutil.copyfile(savepath, savepath.with_name(f"{filename}_chkpoint_best.pth"))
 
 
 def load_checkpoint(current_model, best_checkpoint, different_datasets=False):
