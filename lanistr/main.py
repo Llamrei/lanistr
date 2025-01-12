@@ -21,6 +21,7 @@ import os
 import pathlib
 import random
 import time
+from typing import List
 import warnings
 
 from datetime import datetime
@@ -55,7 +56,7 @@ def main() -> None:
       description="Multimodal Learning with LANISTR"
   )
   parser.add_argument(
-      "--config", type=str, default="./configs/mimic_pretrain.yaml"
+      "--config", type=str
   )
   parser.add_argument(
       "--local_rank",
@@ -92,14 +93,35 @@ def main() -> None:
   args.local_rank = flags.local_rank
   args.eval_on = flags.eval_on
   args.debug = flags.debug
+  run(
+    config_path=flags.config,
+    overrides=flags.overrides,
+    local_rank=flags.local_rank,
+    eval_on=flags.eval_on,
+    debug=flags.debug,
+  )
+
+def run(
+    config_path: str,
+    overrides: List[str] = None,
+    local_rank: int = 0,
+    eval_on: str = "test",
+    debug: bool = False,
+) -> None:
+  args = omegaconf.OmegaConf.load(config_path)
+  if overrides:
+    args = omegaconf.OmegaConf.merge(args, omegaconf.OmegaConf.from_cli(overrides))
+  args.eval_on = eval_on
+  args.debug = debug
+  args.local_rank = local_rank
   args.output_dir = os.path.join(args.output_dir, args.experiment_name)
+
   if args.debug:
     args.start_time = datetime.now().strftime("%Y%m%d%H%M%S")
     args.output_dir = os.path.join(args.output_dir, f"DEBUG_{args.start_time}")
     logger.info(f"Debug mode: output_dir is {args.output_dir}")
   if not os.path.exists(args.output_dir):
     os.mkdir(args.output_dir)
-
 
   # Settings for multi-GPU training:
   # nodes - number of machines, ngpus_per_node - number of GPUs to use per

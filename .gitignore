@@ -12,3 +12,8 @@ data/
 *.egg-info
 *.tar
 .DS_Store
+
+*chkpoint*
+*optimizer*
+
+lanistr/output_dir/**/config*

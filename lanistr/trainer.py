@@ -381,13 +381,14 @@ class Trainer:
       loss = output.loss
 
       # measure accuracy and record loss
-      if self.args.perf_metric.upper() == "ACCURACY":
-        self.metrics["train"][self.args.perf_metric.upper()].update(
+      configured_perf_metric = self.args.perf_metric.upper()
+      if configured_perf_metric == "ACCURACY":
+        self.metrics["train"][configured_perf_metric].update(
             preds=output.logits, target=inputs["labels"]
         )
-      elif self.args.perf_metric.upper() == "RMSE":
+      elif configured_perf_metric == "RMSE":
         # Assumes labels are shape (Batch,) and num_classes is set to 1
-        self.metrics["train"][self.args.perf_metric.upper()].update(
+        self.metrics["train"][configured_perf_metric].update(
             preds=output.logits.squeeze(), target=inputs["labels"]
         )
 

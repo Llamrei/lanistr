@@ -1,0 +1,7 @@
+- `ca_housing_pretrain_x.yaml` are identical but with different folds of data for cross validation
+- The pretrain scripts are "converted" into finetune scripts by just changing the task and output save
+    - Verify by looking at output of `output_dir/ca_housing/ca_housing_pretrain_0`
+- `ca_housing_finetune_only.yaml` assumes supply of the split # and manual management of results.
+- `ca_housing` needs the keys:
+    - `ca_data_path`
+    - `ca_indices_folder`
