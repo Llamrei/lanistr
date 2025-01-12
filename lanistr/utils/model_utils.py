@@ -101,41 +101,40 @@ def build_model(
     assert args.text_embedding_dim == text_encoder.config.hidden_size
 
   # Tabular encoder
-  if args.tab:
+  if args.tab and args.tabular_encoder_name == "tabnet":
+    tabnet_args = dict(
+      input_dim=tabular_data_information["input_dim"],
+      cat_idxs=tabular_data_information["cat_idxs"],
+      cat_dims=tabular_data_information["cat_dims"],
+      cat_emb_dim=args.tabnet.cat_emb_dim,
+      mask_type=args.tabnet.mask_type,
+      n_d=args.tabnet.n_d,
+      n_a=args.tabnet.n_a,
+      epsilon=1e-12,
+      virtual_batch_size=int(
+          args.train_batch_size // args.ngpus_per_node // 2
+      ),
+    )
     if args.task == "pretrain":
-      tabular_encoder = TabNetPretraining(
-          input_dim=tabular_data_information["input_dim"],
-          pretraining_ratio=args.tabular_pretraining_ratio,
-          cat_idxs=tabular_data_information["cat_idxs"],
-          cat_dims=tabular_data_information["cat_dims"],
-          cat_emb_dim=args.tabular_cat_emb_dim,
-          mask_type=args.tabular_mask_type,
-          n_d=args.tabular_n_d,
-          n_a=args.tabular_n_a,
-          epsilon=1e-12,
-          virtual_batch_size=int(
-              args.train_batch_size // args.ngpus_per_node // 2
-          ),
-      )
+      tabnet_args["pretraining_ratio"] = args.tabnet.pretraining_ratio
+      tabular_encoder = TabNetPretraining(**tabnet_args)
     elif args.task == "finetune":
-      tabular_encoder = TabNet(
-          input_dim=tabular_data_information["input_dim"],
-          output_dim=args.tabular_output_dim,
-          cat_idxs=tabular_data_information["cat_idxs"],
-          cat_dims=tabular_data_information["cat_dims"],
-          cat_emb_dim=args.tabular_cat_emb_dim,
-          mask_type=args.tabular_mask_type,
-          n_d=args.tabular_n_d,
-          n_a=args.tabular_n_a,
-          epsilon=1e-12,
-          virtual_batch_size=int(
-              args.train_batch_size // args.ngpus_per_node // 2
-          ),
-      )
+      tabnet_args["output_dim"] = args.tabular_output_dim
+      tabular_encoder = TabNet(**tabnet_args)
 
       for p in tabular_encoder.parameters():
         p.requires_grad = args.tabular_encoder_trainable
 
+  if args.tab and args.tabular_encoder_name == "resnet":
+    tabular_encoder = ResNet(
+        args.tabular_input_dim,
+        args.resnet.hidden_dim,
+        args.resnet.num_layers,
+        args.resnet.dropout,
+        args.resnet.activation,
+    )
+
+  if args.tab:
     tabular_proj = build_projector(
         in_dim=args.tabular_embedding_dim,
         hidden_dim=None,

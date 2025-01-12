@@ -81,11 +81,14 @@ class Trainer:
     # Initialize early stopping if configured
     self.early_stopping = None
     if hasattr(getattr(args, 'training', None), 'early_stopping'):
+        print_only_by_main_process(f"Early stopping configured with patience={args.training.early_stopping.patience}, min_delta={args.training.early_stopping.min_delta}, mode={args.training.early_stopping.mode}")
         self.early_stopping = EarlyStopping(
             patience=args.training.early_stopping.patience,
             min_delta=args.training.early_stopping.min_delta,
             mode=args.training.early_stopping.mode
         )
+    else:
+      print_only_by_main_process("Early stopping not configured")
 
   def get_optimizer(
       self,
@@ -182,6 +185,13 @@ class Trainer:
                 f"pretrain"
             ),
         )
+      
+      if self.early_stopping is not None:
+        if self.early_stopping(train_results["Loss"]):
+          logger.info('Early stopping triggered')
+          break
+        else:
+          logger.info('Early stopping not triggered')
 
       for metric_name in self.metric_names:
         self.metrics["train"][metric_name].reset()
@@ -338,10 +348,12 @@ class Trainer:
         )
       
       if self.early_stopping is not None:
-          if self.early_stopping(valid_results[metric]):
-              logger.info('Early stopping triggered')
-              break
-
+        if self.early_stopping(valid_results[metric]):
+          # TODO: Think how early stopping interacts with DDP - currently just hacking it in as we do single node training or DP
+          print_only_by_main_process('Early stopping triggered')
+          break
+        else:
+          print_only_by_main_process('Early stopping not triggered')
 
       for metric_name in self.metric_names:
         self.metrics["train"][metric_name].reset()
