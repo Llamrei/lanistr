@@ -32,6 +32,7 @@ from utils.common_utils import print_performance_by_main_process
 from utils.common_utils import print_pretrain_performance_by_main_process
 from utils.common_utils import save_checkpoint
 from utils.common_utils import save_checkpoint_optimizer
+from utils.training_utils import EarlyStopping
 from utils.parallelism_utils import is_main_process
 
 
@@ -76,6 +77,15 @@ class Trainer:
     self.amazon = args.dataset_name.startswith("amazon")
     self.california_housing = args.dataset_name.startswith("ca")
     self.metrics, self.metric_names = get_metrics(args)
+
+    # Initialize early stopping if configured
+    self.early_stopping = None
+    if hasattr(getattr(args, 'training', None), 'early_stopping'):
+        self.early_stopping = EarlyStopping(
+            patience=args.training.early_stopping.patience,
+            min_delta=args.training.early_stopping.min_delta,
+            mode=args.training.early_stopping.mode
+        )
 
   def get_optimizer(
       self,
@@ -294,8 +304,9 @@ class Trainer:
       # train for one epoch
       train_results = self.train_epoch(train_dataloader)
 
-      # evaluate on validation set
+      # Validation phase
       valid_results = self.validate(valid_dataloader)
+      
 
       if metric == "ACCURACY":
         is_best = valid_results[metric] > best_perf
@@ -314,7 +325,7 @@ class Trainer:
           best_perf,
           metric_name=metric,
       )
-
+      
       if not self.multiprocessing_distributed or (
           self.multiprocessing_distributed
           and self.local_rank % self.ngpus_per_node == 0
@@ -325,6 +336,12 @@ class Trainer:
             file_dir=self.args.output_dir,
             filename="finetune",
         )
+      
+      if self.early_stopping is not None:
+          if self.early_stopping(valid_results[metric]):
+              logger.info('Early stopping triggered')
+              break
+
 
       for metric_name in self.metric_names:
         self.metrics["train"][metric_name].reset()
