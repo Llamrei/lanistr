@@ -489,7 +489,12 @@ def save_checkpoint(
     shutil.copyfile(savepath, savepath.with_name(f"{filename}_chkpoint_best.pth"))
 
 
-def load_checkpoint(current_model, best_checkpoint, different_datasets=False):
+def load_checkpoint(
+  current_model, 
+  best_checkpoint, 
+  different_datasets=False,
+  loading_pretrain_into_finetune=False,
+  ):
   """Load the best model.
 
   Args:
@@ -498,21 +503,41 @@ def load_checkpoint(current_model, best_checkpoint, different_datasets=False):
     different_datasets: whether the current dataset is different from the
       dataset used to train the best model
 
+  If the dataset is different, we skip loading the embeddings for the tabular encoder
+
   Returns:
     current_model: current model
   """
   new_state_dict = collections.OrderedDict()
+  keys_to_fill = current_model.state_dict().keys()
   for k, v in best_checkpoint.items():
     if (
         k.startswith("tabular_encoder.embedder.embeddings")
         and different_datasets
     ):
-      pass
+      continue
+    
+    if loading_pretrain_into_finetune:
+      # This patch enables saving of a model with form tabular_encoder.encoder and loading it with form tabular_encoder.tabnet.encoder
+      # to follow the messed up nesting convention of the existing codebase
+      if k not in keys_to_fill:
+        tabnet_patched_key = k.replace("tabular_encoder", "tabular_encoder.tabnet")
+        if tabnet_patched_key in keys_to_fill:
+          new_state_dict[tabnet_patched_key] = v
+        # Don't add the key to the new state dict if it's not in the keys_to_fill - this avoids trying to load in the decoder
+        continue
+      new_state_dict[k] = v
     else:
       new_state_dict[k] = v
 
-  current_model.load_state_dict(new_state_dict, strict=False)
-
+  strict_load = False
+  if loading_pretrain_into_finetune:
+    # This patch handles the fact our finetuning tabnet has an extra layer
+    # THIS WONT WORK FOR MULTI-TASKING
+    final_mapping_key = "tabular_encoder.tabnet.final_mapping.weight"
+    new_state_dict[final_mapping_key] = current_model.state_dict()[final_mapping_key]
+    strict_load = True
+  current_model.load_state_dict(new_state_dict, strict=strict_load)
   return current_model
 
 

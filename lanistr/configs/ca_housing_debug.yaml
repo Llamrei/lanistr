@@ -24,7 +24,7 @@ ca_indices_folder: /home/ma/a/al3615/projects/text_and_tabular/california_house_
 # do_test: false
 
 dataset_name: ca
-task: finetune
+task: pretrain
 num_classes: 1
 perf_metric: RMSE
 supervised_loss: mse_loss
@@ -38,18 +38,19 @@ tab: true
 finetune_initialize_from: random
 # Freeze the text encoder
 text_encoder_trainable: false
-
 mm_encoder_trainable: true
 text_proj_trainable: true
 
 output_dir: ./output_dir/ca_housing
-experiment_name: ca_housing_finetune_only
+experiment_name: ca_housing_debug
 
 test_ratio: 0.1
 
-train_batch_size: 128
-eval_batch_size: 128
-test_batch_size: 128
+# If running with tabnet the batch size must be larger than 2*ngpus_per_node*2 as virtual batch size is set to 1/2 of the batch size
+# and batchnorm needs >=2 samples to compute the mean and variance
+train_batch_size: 8 
+eval_batch_size: 8
+test_batch_size: 8
 
 scheduler:
   num_epochs: 1
@@ -113,3 +114,13 @@ training:
     patience: 5
     min_delta: 0.001
     mode: min
+
+# Pretraining loss weights
+lambda_mim: 1.0
+lambda_mlm: 1.0
+lambda_mtm: 0.1
+lambda_mmm: 1.0
+lambda_mfm: 0.01
+
+pretrain_resume: false # If true - prior checkpoint must exist
+pretrain_initialize_from_epoch: 0

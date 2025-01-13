@@ -571,7 +571,8 @@ class TabNetNoEmbeddings(nn.Module):
     self.n_shared = n_shared
     self.virtual_batch_size = virtual_batch_size
     self.mask_type = mask_type
-    self.initial_bn = nn.BatchNorm1d(self.input_dim, momentum=0.01)
+    # TODO: This is not used - remove?
+    # self.initial_bn = nn.BatchNorm1d(self.input_dim, momentum=0.01)
 
     self.encoder = TabNetEncoder(
         input_dim=input_dim,
@@ -726,7 +727,7 @@ class TabNet(torch.nn.Module):
         virtual_batch_size,
         momentum,
         mask_type,
-    )
+    ) # This is what contains the encoder
 
   def forward(self, x: torch.Tensor) -> TabNetModelOutput:
     """Forward pass of the TabNet model.

@@ -33,7 +33,6 @@ from utils.common_utils import load_checkpoint
 from utils.common_utils import print_model_size
 from utils.common_utils import print_only_by_main_process
 
-
 def build_model(
     args: omegaconf.DictConfig, tabular_data_information
 ) -> torch.nn.Module:
@@ -219,11 +218,12 @@ def build_model(
     )
 
     if args.pretrain_resume:
+      checkpoints_stored_at = Path(args.output_dir)
       try:
-        latest_checkpoint_path = next(iter(Path(args.output_dir).glob("**/pretrain*chkpoint.pth")))
+        latest_checkpoint_path = next(iter(checkpoints_stored_at.glob("**/pretrain*chkpoint.pth")))
       except StopIteration:
         raise FileNotFoundError(
-                    f"Pretrained checkpoint {latest_checkpoint_path} not found."
+                    f"Pretrained checkpoint not found in {checkpoints_stored_at}."
                     " Pretrain first by passing task=pretrain as an argument"
                 )
       print_only_by_main_process(
@@ -267,7 +267,7 @@ def build_model(
         mim_head=mim_head,
         text_encoder=text_encoder,
         mlm_head=mlm_head,
-        tabular_encoder=tabular_encoder,
+        tabular_encoder=tabular_encoder, # Unclear to me how this works - as the tabular encoder is different between pretrain and finetune
         timeseries_encoder=timeseries_encoder,
         mm_fusion=mm_fusion,
         image_proj=image_proj,
@@ -283,6 +283,7 @@ def build_model(
       print_only_by_main_process(f"Loading model from {best_checkpoint_path}")
       if os.path.exists(best_checkpoint_path):
         loc = "cuda:{}".format(args.device)
+        # Need to check this actually changes the tabnet model on load - because our pretrained model is different if we are pretraining or finetuning
         best_checkpoint = torch.load(best_checkpoint_path, map_location=loc)
       else:
         raise FileNotFoundError(
@@ -293,6 +294,7 @@ def build_model(
           pretrain_model,
           best_checkpoint,
           different_datasets=True if args.dataset_name == "amazon" else False,
+          loading_pretrain_into_finetune=True,
       )
     elif args.finetune_initialize_from == "random":
       print_only_by_main_process("Randomly initializing the entire model")
@@ -304,6 +306,7 @@ def build_model(
           pretrain_model,
           checkpoint,
           different_datasets=True,
+          loading_pretrain_into_finetune=True,
       )
     else:
       raise ValueError(
