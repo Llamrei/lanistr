@@ -211,6 +211,7 @@ def main_worker(args: omegaconf.DictConfig) -> None:
   # Load dataset
   tic = time.time()
   print_only_by_main_process("Loading datasets ... ")
+  # TODO: This might be something we change when integrating with the wider codebase
   dataset = load_dataset(args, tokenizer)
   how_long(tic)
 
@@ -219,11 +220,13 @@ def main_worker(args: omegaconf.DictConfig) -> None:
       args,
       tabular_data_information=dataset["tabular_data_information"],
   )
-  args, model = setup_model(args, model)
 
   # Create the trainer and generate data loaders
-  trainer = Trainer(model, args)
   dataloaders = generate_loaders(args, dataset)
+
+  # Parallelize the model and tie it to trainer
+  args, model = setup_model(args, model)
+  trainer = Trainer(model, args)
 
   # Pretrain or finetune
   if args.task == "pretrain":
@@ -231,7 +234,7 @@ def main_worker(args: omegaconf.DictConfig) -> None:
     trainer.pretrain(dataloaders)
     how_long(
         pretrain_start,
-        f"Pre-training finished after {args.scheduler.num_epochs} epochs",
+        f"Pre-training finished after {trainer.reached_epoch}/{args.scheduler.num_epochs} epochs",
     )
 
   elif args.task == "finetune":
@@ -245,7 +248,7 @@ def main_worker(args: omegaconf.DictConfig) -> None:
       train_start = time.time()
       trainer.train(dataloaders)
       how_long(
-          train_start, f"Train the model for {args.scheduler.num_epochs} epochs"
+          train_start, f"Train the model for {trainer.reached_epoch}/{args.scheduler.num_epochs} epochs"
       )
 
     if args.do_test:

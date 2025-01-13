@@ -25,6 +25,7 @@ from model.lanistr_utils import ViTForMaskedImageModelingDecoder as mim_head
 from model.modeling_lanistr import LANISTRMultiModalForPreTraining
 from model.modeling_lanistr import LANISTRMultiModalModel
 from model.modules.classifier import PredictionMLP
+from model.tabular_resnet import TabularResNet
 import omegaconf
 import torch
 import transformers
@@ -102,6 +103,7 @@ def build_model(
 
   # Tabular encoder
   if args.tab and args.tabular_encoder_name == "tabnet":
+    tabular_embedding_dim = args.tabnet.n_d
     tabnet_args = dict(
       input_dim=tabular_data_information["input_dim"],
       cat_idxs=tabular_data_information["cat_idxs"],
@@ -119,24 +121,30 @@ def build_model(
       tabnet_args["pretraining_ratio"] = args.tabnet.pretraining_ratio
       tabular_encoder = TabNetPretraining(**tabnet_args)
     elif args.task == "finetune":
-      tabnet_args["output_dim"] = args.tabular_output_dim
+      # NOTE: This is a pointless parameter that original creators left in - presumably to test TabNet? Not used by LANISTR
+      # it is never used - and is bypassed to only access the embeddings prior to projection
+      tabnet_args["output_dim"] = args.tabnet.output_dim
       tabular_encoder = TabNet(**tabnet_args)
 
       for p in tabular_encoder.parameters():
         p.requires_grad = args.tabular_encoder_trainable
 
   if args.tab and args.tabular_encoder_name == "resnet":
-    tabular_encoder = ResNet(
-        args.tabular_input_dim,
-        args.resnet.hidden_dim,
-        args.resnet.num_layers,
-        args.resnet.dropout,
-        args.resnet.activation,
+    tabular_embedding_dim = args.resnet.hidden_dim
+    tabular_encoder = TabularResNet(
+        input_dim=tabular_data_information["input_dim"],
+        hidden_dim=args.resnet.hidden_dim,
+        num_layers=args.resnet.num_layers,
+        dropout=args.resnet.dropout,
+        activation=args.resnet.activation,
+        cat_dims=tabular_data_information["cat_dims"],
+        cat_idxs=tabular_data_information["cat_idxs"],
+        cat_emb_dim=args.resnet.cat_emb_dim
     )
 
   if args.tab:
     tabular_proj = build_projector(
-        in_dim=args.tabular_embedding_dim,
+        in_dim=tabular_embedding_dim,
         hidden_dim=None,
         out_dim=args.projection_dim,
         projection_type="SingleLayer",

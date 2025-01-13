@@ -23,13 +23,13 @@ class TabNetEncoder(nn.Module):
   """TabNet encoder.
 
   This is the encoder part of the TabNet model. It takes the input and passes it
-  through the TabNet encoder.
+  through the TabNet encoder. 
+  Outputing a tensor of shape [batch_size, n_d] along with entropy loss.
   """
 
   def __init__(
       self,
       input_dim: int,
-      output_dim: int,
       n_d: int = 128,
       n_a: int = 128,
       n_steps: int = 6,
@@ -66,8 +66,6 @@ class TabNetEncoder(nn.Module):
     """
     super().__init__()
     self.input_dim = input_dim
-    self.output_dim = output_dim
-    self.is_multi_task = isinstance(output_dim, list)
     self.n_d = n_d
     self.n_a = n_a
     self.n_steps = n_steps
@@ -393,7 +391,6 @@ class TabNetPretraining(torch.nn.Module):
     self.masker = RandomObfuscator(self.pretraining_ratio)
     self.encoder = TabNetEncoder(
         input_dim=self.post_embed_dim,
-        output_dim=self.post_embed_dim,
         n_d=n_d,
         n_a=n_a,
         n_steps=n_steps,
@@ -578,7 +575,6 @@ class TabNetNoEmbeddings(nn.Module):
 
     self.encoder = TabNetEncoder(
         input_dim=input_dim,
-        output_dim=output_dim,
         n_d=n_d,
         n_a=n_a,
         n_steps=n_steps,

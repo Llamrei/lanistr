@@ -17,6 +17,7 @@ import dataclasses
 import math
 from typing import Mapping, Optional
 
+from lanistr.third_party.tabnet.tabular_encoder import TabNetPretrainingModelOutput, TabNetModelOutput
 from model.losses import MaskedMSELoss
 from model.losses import NegativeCosineSimilarityLoss
 import omegaconf
@@ -250,7 +251,7 @@ class LANISTRMultiModalForPreTraining(nn.Module):
 
     ##=============================== MFM ===================================##
     if self.args.tab:
-      tabular_output = self.tabular_encoder(batch['features'])
+      tabular_output: TabNetPretrainingModelOutput = self.tabular_encoder(batch['features'])
       loss_mfm = tabular_output.masked_loss
       masked_tabular_embeddings = self.tabular_proj(
           tabular_output.masked_last_hidden_state
@@ -436,7 +437,7 @@ class LANISTRMultiModalModel(nn.Module):
 
     ##================================= Tabular ==============================##
     if self.args.tab:
-      tabular_output = self.tabular_encoder(batch['features'])
+      tabular_output: TabNetModelOutput = self.tabular_encoder(batch['features'])
       tabular_embeddings = self.tabular_proj(tabular_output.last_hidden_state)
       tabular_embeddings = F.normalize(tabular_embeddings, dim=1)
       embeds.append(tabular_embeddings.unsqueeze(dim=1))
