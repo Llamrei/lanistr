@@ -47,12 +47,12 @@ experiment_name: ca_housing_finetune_only
 
 test_ratio: 0.1
 
-train_batch_size: 512
-eval_batch_size: 617
-test_batch_size: 617
+train_batch_size: 128
+eval_batch_size: 128
+test_batch_size: 128
 
 scheduler:
-  num_epochs: 500
+  num_epochs: 1
   warmup_epochs: 5
 
 optimizer:

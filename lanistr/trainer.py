@@ -59,6 +59,7 @@ class Trainer:
     self.device = args.device
 
     self.num_epochs = args.scheduler.num_epochs
+    self.reached_epoch = 0
     self.lr = self.args.optimizer.learning_rate
     self.wd = self.args.optimizer.weight_decay
 
@@ -207,7 +208,7 @@ class Trainer:
       self, train_loader: torch.utils.data.DataLoader
   ) -> Mapping[str, float]:
     """Single epoch of pretraining."""
-
+    self.reached_epoch += 1
     self.model.train()
     for _, batch in enumerate(
         tqdm.tqdm(
@@ -363,7 +364,7 @@ class Trainer:
       self, train_loader: torch.utils.data.DataLoader
   ) -> Mapping[str, float]:
     """Single epoch of training."""
-
+    self.reached_epoch += 1
     # switch to train mode
     self.model.train()
     for _, batch in enumerate(
