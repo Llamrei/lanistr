@@ -3,7 +3,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional
+import dataclasses
+import transformers
 
+@dataclasses.dataclass
+class ResNetOutput(transformers.utils.ModelOutput):
+  """Base class for tabular resnet model outputs. To fit API."""
+  last_hidden_state: Optional[torch.Tensor] = None
 
 class ResidualBlock(nn.Module):
     """Residual block for tabular data."""
@@ -225,6 +232,6 @@ class TabularResNet(nn.Module):
             x = torch.cat(continuous_features + categorical_features, dim=1)
 
         # Pass through ResNet
-        x = self.resnet(x)
-        
-        return self.output_activation(x)
+        return ResNetOutput(
+            last_hidden_state=self.resnet(x),
+        )
