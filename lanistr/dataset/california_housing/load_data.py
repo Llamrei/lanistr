@@ -1,38 +1,16 @@
-"""Copyright 2024 Google LLC.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-
 from __future__ import absolute_import
 
-import os
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from dataset.amazon.amazon_utils import encode_tabular_features, get_amazon_transforms
-from dataset.amazon.amazon_utils import get_train_and_test_splits
-from dataset.amazon.amazon_utils import load_multimodal_data
-from dataset.amazon.amazon_utils import preprocess_amazon_tabular_features
+from dataset.amazon.amazon_utils import encode_tabular_features
 import numpy as np
 import omegaconf
 import pandas as pd
-from PIL import Image
 import torch
 import json
 from torch.utils import data
-import torchvision
 import transformers
-from utils.data_utils import MaskGenerator
 
 from sklearn.model_selection import train_test_split
 
@@ -67,6 +45,10 @@ def load_california(
   test_dataset = total_dataset.loc[indices['val']]
   train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2, random_state=42)
   
+  # TODO: Optional categorical target mean encoding here; after processing move all
+  # categorical columns to numerical
+  
+
   total_dataset = merge_data_with_split_col(train_dataset, test_dataset, val_dataset)
   total_dataset.rename(columns={"Sold Price":"labels"}, inplace=True)
   total_dataset[text_names] = total_dataset[text_names].fillna('')
