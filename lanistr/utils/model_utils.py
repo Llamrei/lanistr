@@ -130,16 +130,27 @@ def build_model(
 
   if args.tab and args.tabular_encoder_name == "resnet":
     tabular_embedding_dim = args.resnet.hidden_dim
-    tabular_encoder = TabularResNet(
-        input_dim=tabular_data_information["input_dim"],
-        hidden_dim=args.resnet.hidden_dim,
-        num_layers=args.resnet.num_layers,
-        dropout=args.resnet.dropout,
-        activation=args.resnet.activation,
-        cat_dims=tabular_data_information["cat_dims"],
-        cat_idxs=tabular_data_information["cat_idxs"],
-        cat_emb_dim=args.resnet.cat_emb_dim
+    resnet_args = dict(
+      input_dim=tabular_data_information["input_dim"],
+      hidden_dim=args.resnet.hidden_dim,
+      num_layers=args.resnet.num_layers,
+      dropout=args.resnet.dropout,
+      activation=args.resnet.activation,
+      cat_dims=tabular_data_information["cat_dims"],
+      cat_idxs=tabular_data_information["cat_idxs"],
+      cat_emb_dim=args.resnet.cat_emb_dim,
     )
+    if args.task == "pretrain":
+      resnet_args["pretraining_ratio"] = args.resnet.pretraining_ratio
+      tabular_encoder = TabularResNet(
+          **resnet_args,
+          for_pretraining=True,
+      )
+    else:
+      tabular_encoder = TabularResNet(
+          **resnet_args,
+          for_pretraining=False,
+      )
 
   if args.tab:
     tabular_proj = build_projector(

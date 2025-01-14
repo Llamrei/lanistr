@@ -7,10 +7,20 @@ from typing import Optional
 import dataclasses
 import transformers
 
+from lanistr.third_party.tabnet.tabular_encoder import RandomObfuscator
+
 @dataclasses.dataclass
 class ResNetOutput(transformers.utils.ModelOutput):
   """Base class for tabular resnet model outputs. To fit API."""
   last_hidden_state: Optional[torch.Tensor] = None
+
+@dataclasses.dataclass
+class ResNetOutputForPretraining(transformers.utils.ModelOutput):
+  """Base class for tabular resnet model outputs. To fit API."""
+  unmasked_last_hidden_state: Optional[torch.Tensor] = None
+  masked_last_hidden_state: Optional[torch.Tensor] = None
+  masked_loss: Optional[torch.Tensor] = None # This is reconstruction loss for MFM
+
 
 class ResidualBlock(nn.Module):
     """Residual block for tabular data."""
@@ -152,6 +162,8 @@ class TabularResNet(nn.Module):
         cat_dims: list = None,
         cat_idxs: list = None,
         cat_emb_dim: int = None,
+        for_pretraining: bool = False,
+        pretraining_ratio: float = 0.1,
     ):
         """Initialize TabularResNet.
 
@@ -203,7 +215,19 @@ class TabularResNet(nn.Module):
             activation=activation,
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        self.for_pretraining = for_pretraining
+        if self.for_pretraining:
+            self.masker = RandomObfuscator(pretraining_ratio)
+            self.decoder = ResNet(
+                input_dim=hidden_dim,
+                hidden_dim=hidden_dim//2,
+                num_layers=num_layers//2,
+                dropout=dropout,
+                activation=activation,
+            ) # Arbitrarily make the decoder smaller
+            self.decoder_output = nn.Linear(hidden_dim//2, self.post_embed_dim)
+
+    def forward(self, embedded_x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
 
         Args:
@@ -212,6 +236,32 @@ class TabularResNet(nn.Module):
         Returns:
             Output tensor of shape [batch_size, output_dim]
         """
+        embedded_x = self._embed_categoricals(embedded_x)
+
+        if self.for_pretraining:
+            masked_x, mask = self.masker(embedded_x)
+            masked_last_hidden_state = self.resnet(masked_x)
+            decoded_hidden_state = self.decoder(masked_last_hidden_state)
+            decoded_x = self.decoder_output(decoded_hidden_state)
+            masked_loss = F.mse_loss(decoded_x*mask, embedded_x*mask)
+
+            unmasked_last_hidden_state = self.resnet(embedded_x)
+
+            return ResNetOutputForPretraining(
+                unmasked_last_hidden_state=unmasked_last_hidden_state,
+                masked_last_hidden_state=masked_last_hidden_state,
+                masked_loss=masked_loss,
+            )
+
+        else:
+            normal_output = self.resnet(embedded_x)
+
+            # Pass through ResNet
+            return ResNetOutput(
+                last_hidden_state=normal_output,
+            )
+
+    def _embed_categoricals(self, x):
         if self.embeddings:
             # Handle categorical variables
             continuous_features = []
@@ -230,8 +280,4 @@ class TabularResNet(nn.Module):
 
             # Concatenate all features
             x = torch.cat(continuous_features + categorical_features, dim=1)
-
-        # Pass through ResNet
-        return ResNetOutput(
-            last_hidden_state=self.resnet(x),
-        )
+        return x

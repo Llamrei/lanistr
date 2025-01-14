@@ -535,7 +535,9 @@ def load_checkpoint(
     # This patch handles the fact our finetuning tabnet has an extra layer
     # THIS WONT WORK FOR MULTI-TASKING
     final_mapping_key = "tabular_encoder.tabnet.final_mapping.weight"
-    new_state_dict[final_mapping_key] = current_model.state_dict()[final_mapping_key]
+    if final_mapping_key in current_model.state_dict():
+      # Check for key as it is not needed for resnet
+      new_state_dict[final_mapping_key] = current_model.state_dict()[final_mapping_key]
     strict_load = True
   current_model.load_state_dict(new_state_dict, strict=strict_load)
   return current_model

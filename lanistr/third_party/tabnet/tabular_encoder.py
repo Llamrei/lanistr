@@ -449,6 +449,9 @@ class TabNetPretraining(torch.nn.Module):
           embeds=embedded_x,
       )
     else:
+      # Unclear when you would ever use this path
+      # It is essentially just making a pure
+      # Autoencoder with no masking
       steps_out, _ = self.encoder(embedded_x)
       res = self.decoder(steps_out)
       obf_vars = torch.ones(embedded_x.shape).to(x.device)
