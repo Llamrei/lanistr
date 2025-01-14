@@ -14,7 +14,6 @@ import torch.distributed
 import torch.cuda
 import transformers
 from torch.utils import data
-from loguru import logger
 
 from lanistr.utils.common_utils import how_long
 from lanistr.utils.common_utils import print_config
@@ -24,6 +23,7 @@ from lanistr.utils.parallelism_utils import is_main_process
 from lanistr.utils.parallelism_utils import setup_model
 from lanistr.trainer import Trainer
 
+logger = logging.getLogger(__name__)
 
 def run(
     config_path: str,
