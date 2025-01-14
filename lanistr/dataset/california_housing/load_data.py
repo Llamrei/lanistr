@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from dataset.amazon.amazon_utils import encode_tabular_features
+from lanistr.dataset.amazon.amazon_utils import encode_tabular_features
 import numpy as np
 import omegaconf
 import pandas as pd

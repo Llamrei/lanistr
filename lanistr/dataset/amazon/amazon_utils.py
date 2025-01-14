@@ -23,8 +23,8 @@ import omegaconf
 import pandas as pd
 from sklearn import preprocessing
 from torchvision import transforms
-from utils.common_utils import print_df_stats
-from utils.common_utils import print_only_by_main_process
+from lanistr.utils.common_utils import print_df_stats
+from lanistr.utils.common_utils import print_only_by_main_process
 
 
 def load_multimodal_data(args: omegaconf.DictConfig) -> pd.DataFrame:

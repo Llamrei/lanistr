@@ -18,8 +18,8 @@ import math
 from typing import Mapping, Optional
 
 from lanistr.third_party.tabnet.tabular_encoder import TabNetPretrainingModelOutput, TabNetModelOutput
-from model.losses import MaskedMSELoss
-from model.losses import NegativeCosineSimilarityLoss
+from lanistr.model.losses import MaskedMSELoss
+from lanistr.model.losses import NegativeCosineSimilarityLoss
 import omegaconf
 import torch
 from torch import nn

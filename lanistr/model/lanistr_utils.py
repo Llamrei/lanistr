@@ -13,9 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from model.modules.projection import MLPProjectionHead
-from model.modules.projection import OneLayerProjectionHead
-from model.modules.projection import SimSiamProjectionHead
+from lanistr.model.modules.projection import MLPProjectionHead
+from lanistr.model.modules.projection import OneLayerProjectionHead
+from lanistr.model.modules.projection import SimSiamProjectionHead
 import torch
 from torch import nn
 import transformers

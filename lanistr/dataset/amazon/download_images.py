@@ -347,6 +347,7 @@ def main():
   parser.add_argument('--seed', type=int, default=2022)
   parser.add_argument('--device', type=str, default='cuda')
   parser.add_argument('--root_data_dir', type=str, default='./data/APR2018/')
+  parser.add_argument('--limit-download', type=int, default=None)
 
   args = parser.parse_args()
 
@@ -382,6 +383,8 @@ def main():
   labels = []
   num_low_res, num_high_res, num_user_url = 0, 0, 0
   range_ = len(data) if args.category == 'Office_Products' else 50000
+  if getattr(args, 'limit_download', None):
+    range_ = min(args.limit_download, range_)
 
   for index in tqdm.tqdm(range(range_)):
 

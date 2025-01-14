@@ -18,10 +18,10 @@ from __future__ import absolute_import
 import os
 from typing import Any, Dict, List, Union
 
-from dataset.amazon.amazon_utils import get_amazon_transforms
-from dataset.amazon.amazon_utils import get_train_and_test_splits
-from dataset.amazon.amazon_utils import load_multimodal_data
-from dataset.amazon.amazon_utils import preprocess_amazon_tabular_features
+from lanistr.dataset.amazon.amazon_utils import get_amazon_transforms
+from lanistr.dataset.amazon.amazon_utils import get_train_and_test_splits
+from lanistr.dataset.amazon.amazon_utils import load_multimodal_data
+from lanistr.dataset.amazon.amazon_utils import preprocess_amazon_tabular_features
 import numpy as np
 import omegaconf
 import pandas as pd
@@ -30,7 +30,7 @@ import torch
 from torch.utils import data
 import torchvision
 import transformers
-from utils.data_utils import MaskGenerator
+from lanistr.utils.data_utils import MaskGenerator
 
 
 def load_amazon(
