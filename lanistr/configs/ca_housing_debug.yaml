@@ -20,11 +20,8 @@ sub_samples: 0
 ca_data_path: /home/ma/a/al3615/data/california_house_price/train.pq
 ca_indices_folder: /home/ma/a/al3615/projects/text_and_tabular/california_house_experiments/indices
 
-# do_train: true
-# do_test: false
-
 dataset_name: ca
-task: pretrain
+task: pretrain # pretrain or finetune
 num_classes: 1
 perf_metric: RMSE
 supervised_loss: mse_loss
@@ -35,25 +32,25 @@ text: true
 time: false
 tab: true
 
-finetune_initialize_from: random
-# Freeze the text encoder
-text_encoder_trainable: false
+finetune_initialize_from: pretrain # random, pretrain or path to checkpoint
+# NOTE: Swap on pretrain/finetune to freeze for finetuning
+text_encoder_trainable: true
 mm_encoder_trainable: true
 text_proj_trainable: true
 
 output_dir: ./output_dir/ca_housing
-experiment_name: ca_housing_debug
+experiment_name: ca_housing_pretrain_resnet
 
 test_ratio: 0.1
 
 # If running with tabnet the batch size must be larger than 2*ngpus_per_node*2 as virtual batch size is set to 1/2 of the batch size
 # and batchnorm needs >=2 samples to compute the mean and variance
-train_batch_size: 8 
-eval_batch_size: 8
-test_batch_size: 8
+train_batch_size: 16 
+eval_batch_size: 16
+test_batch_size: 16
 
 scheduler:
-  num_epochs: 1
+  num_epochs: 500
   warmup_epochs: 5
 
 optimizer:
@@ -82,7 +79,7 @@ text_embedding_dim: 768
 mlm_probability: 0.15
 
 # tabular encoder
-tabular_encoder_name: tabnet
+tabular_encoder_name: resnet
 tabular_encoder_trainable: true
 tabular_proj_trainable: true
 
@@ -95,6 +92,7 @@ tabnet:
   output_dim: 1 # This is a pointless parameter that original creators left in - presumably to test TabNet? Not used by LANISTR
 
 resnet:
+  pretraining_ratio: 0.15
   hidden_dim: 256
   num_layers: 3
   dropout: 0.1
