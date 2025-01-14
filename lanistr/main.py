@@ -52,6 +52,38 @@ set_global_logging_level(logging.ERROR, ["transformers"])
 
 
 def main() -> None:
+    """CLI Entry point for LANISTR training and evaluation.
+
+    Handles command line argument parsing and initial setup for training/evaluating
+    LANISTR models. This includes:
+    - Loading and merging configuration files with command line overrides
+    - Setting up the appropriate dataset loader based on dataset_name
+    - Initializing the tokenizer for text processing
+    - Delegating to the run() function for actual training/evaluation
+
+    Command line arguments:
+        --config: Path to YAML configuration file
+        --local_rank: Process rank for distributed training (default: 0)
+        --eval_on: Dataset split to evaluate on ['train', 'valid', 'test'] (default: 'test')
+        --debug: Enable debug mode with additional logging (default: False)
+        overrides: Additional key=value pairs to override config values
+
+    Supported datasets:
+        - 'mimic-iv': MIMIC-IV clinical notes dataset
+        - 'amazon': Amazon product reviews dataset
+        - 'ca': California housing dataset
+
+    The function expects a configuration file that specifies:
+        - Model architecture and initialization parameters
+        - Training settings (batch size, learning rate, etc.)
+        - Dataset-specific parameters
+        - Output and logging directories
+        Examples can be found in the lanistr/configs directory. Most up to date is the `ca_housing_debug.yaml` file.
+
+    Raises:
+        NotImplementedError: If an unsupported dataset_name is specified
+    """
+  
   # Arguments
   parser = argparse.ArgumentParser(
       description="Multimodal Learning with LANISTR"
@@ -87,6 +119,7 @@ def main() -> None:
           "(use dots for.nested=overrides)"
       ),
   )
+  # TODO: Duplicated with run() function, but as it works leaving it for now
   flags = parser.parse_args()
   overrides = omegaconf.OmegaConf.from_cli(flags.overrides)
   config = omegaconf.OmegaConf.load(flags.config)

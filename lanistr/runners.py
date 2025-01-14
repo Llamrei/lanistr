@@ -43,8 +43,9 @@ def run(
 
   Args:
       config_path: Path to the YAML config file containing model and training parameters
-      dataset: Dictionary containing train/val/test datasets and tabular data information
-        Each dataset should have the following keys:
+      dataset: Dictionary containing train/val/test and `tabular_data_information`
+        `train`, `valid`, and `test` keys should each map to a torch.utils.data.Dataset
+        Each dataset should have __getitem__() method that returns a dictionary with the following keys:
           - 'features': Tabular data
           - 'input_ids': Tokenized text data
           - 'attention_mask': Attention mask for the text data
