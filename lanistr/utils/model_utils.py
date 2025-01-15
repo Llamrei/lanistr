@@ -15,6 +15,14 @@ limitations under the License.
 
 import os
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 from lanistr.third_party.mvts_transformer.timeseries_encoder import TimeSeriesEncoder
 from lanistr.third_party.tabnet.tabular_encoder import TabNet
@@ -251,7 +259,7 @@ def build_model(
     else:
       print_only_by_main_process("Randomly initializing the entire model")
 
-    print_model_size(multimodal_model, "pretraining with LANISTR")
+    print_model_size(multimodal_model, "pretraining with LANISTR - before freezing")
 
     if args.text:
       for p in multimodal_model.text_encoder.parameters():
@@ -269,7 +277,7 @@ def build_model(
     for p in multimodal_model.mm_fusion.parameters():
       p.requires_grad = args.mm_encoder_trainable
 
-    print_model_size(multimodal_model, "pretraining with LANISTR")
+    print_model_size(multimodal_model, "pretraining with LANISTR - after freezing")
 
   elif args.task == "finetune":
     pretrain_model = LANISTRMultiModalForPreTraining(
@@ -352,31 +360,38 @@ def build_model(
     )
 
     if args.text:
-      for p in multimodal_model.text_encoder.parameters():
-        p.requires_grad = args.text_encoder_trainable
-      for p in multimodal_model.text_proj.parameters():
-        p.requires_grad = args.text_proj_trainable
+      freeze_on(args, multimodal_model, "text_encoder", "text_encoder_trainable")
+      freeze_on(args, multimodal_model, "text_proj", "text_proj_trainable")
     if args.image:
-      for p in multimodal_model.image_encoder.parameters():
-        p.requires_grad = args.image_encoder_trainable
-      for p in multimodal_model.image_proj.parameters():
-        p.requires_grad = args.image_proj_trainable
+      freeze_on(args, multimodal_model, "image_encoder", "image_encoder_trainable")
+      freeze_on(args, multimodal_model, "image_proj", "image_proj_trainable")
     if args.tab:
-      for p in multimodal_model.tabular_encoder.parameters():
-        p.requires_grad = args.tabular_encoder_trainable
-      for p in multimodal_model.tabular_proj.parameters():
-        p.requires_grad = args.tabular_proj_trainable
+      freeze_on(args, multimodal_model, "tabular_encoder", "tabular_encoder_trainable")
+      freeze_on(args, multimodal_model, "tabular_proj", "tabular_proj_trainable")
     if args.time:
-      for p in multimodal_model.timeseries_encoder.parameters():
-        p.requires_grad = args.timeseries_encoder_trainable
-      for p in multimodal_model.time_proj.parameters():
-        p.requires_grad = args.timeseries_proj_trainable
+      freeze_on(args, multimodal_model, "timeseries_encoder", "timeseries_encoder_trainable")
+      freeze_on(args, multimodal_model, "time_proj", "timeseries_proj_trainable")
 
-    for p in multimodal_model.mm_fusion.parameters():
-      p.requires_grad = args.mm_encoder_trainable
+    freeze_on(args, multimodal_model, "mm_fusion", "mm_encoder_trainable")
 
     print_model_size(
         multimodal_model, "Finetuning with LANISTR after possibly freezing"
     )
 
   return multimodal_model
+
+def freeze_on(args, multimodal_model, key, on_key):
+    """
+    Checks args for `on_key` and freezes the parameters of `multimodal_model` for `key` if it is set to true.
+    """
+    if not hasattr(args, on_key):
+      raise ValueError(f"Freezing parameter for {key} ({on_key}) is not set")
+
+    whether_to_freeze = getattr(args, on_key)
+    what_to_freeze = getattr(multimodal_model, key)
+    if not whether_to_freeze:
+      logger.info(f"Freezing {key}")
+    else:
+      logger.info(f"Not freezing {key}.")
+    for p in what_to_freeze.parameters():
+      p.requires_grad = whether_to_freeze
