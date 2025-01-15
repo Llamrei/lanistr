@@ -397,6 +397,7 @@ class Trainer:
             self.device, non_blocking=True
         )
       if batch["labels"].ndim > 1:
+        # Unclear why this is happening, but it is in the original LANISTR code, so we will keep it for now.
         inputs["labels"] = (
             batch["labels"].squeeze(1).cuda(self.device, non_blocking=True)
         )

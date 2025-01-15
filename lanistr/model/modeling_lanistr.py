@@ -458,6 +458,8 @@ class LANISTRMultiModalModel(nn.Module):
     output = self.classifier(mm_out)
 
     ##======================== Supervised loss ==============================##
+    # FIXME: For some reason, the labels are being squeezed down prior to being passed to the model
+    # as this is in the original LANISTR code, and we don't want unintended code changes, we will keep it for now.
     loss = self.loss_function(output, batch['labels'])
 
     return BaseModelOutput(
