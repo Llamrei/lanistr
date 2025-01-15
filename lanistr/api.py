@@ -154,6 +154,7 @@ def main_worker(
       filename=os.path.join(args.output_dir, log_name)
       if args.local_rank in [-1, 0]
       else None,
+      filemode='a',
       format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
       datefmt="%m/%d/%Y %H:%M:%S",
       level=logging_level,
