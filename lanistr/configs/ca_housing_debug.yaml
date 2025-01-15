@@ -33,15 +33,16 @@ time: false
 tab: true
 
 mm_encoder_trainable: true
-finetune_initialize_from: pretrain # random, pretrain or path to checkpoint
+loading_from_finetuned: true # This should be true if finetune_intialize_from is pointing to a finetuned model
+finetune_initialize_from: /home/ma/a/al3615/projects/lanistr/lanistr/output_dir/ca_housing/ca_housing_pretrain_resnet/finetune_chkpoint_best.pth # random, pretrain or path to checkpoint
 # NOTE: Swap on pretrain/finetune to freeze for finetuning
-text_encoder_trainable: false
-text_proj_trainable: false
-tabular_encoder_trainable: false
-tabular_proj_trainable: false
+text_encoder_trainable: true
+text_proj_trainable: true
+tabular_encoder_trainable: true
+tabular_proj_trainable: true
 
 output_dir: ./output_dir/ca_housing
-experiment_name: ca_housing_pretrain_resnet
+experiment_name: ca_housing_pretrain_resnet_test_transfer_learning
 
 test_ratio: 0.1
 
@@ -50,16 +51,16 @@ test_ratio: 0.1
 # If finetuning with a lot of freezing - we will be storing less gradients so can increase batch size
 # For pretraining - works with 16 on 2 GPUS
 # For finetuning - works with 256 on 2 GPUS
-train_batch_size: 256
-eval_batch_size: 256
-test_batch_size: 256
+train_batch_size: 16
+eval_batch_size: 16
+test_batch_size: 16
 
 scheduler:
   num_epochs: 500
   warmup_epochs: 5
 
 optimizer:
-  learning_rate: 0.0001
+  learning_rate: 0.00001
   weight_decay: 0.02
   clip_value: 5.0
 

@@ -250,7 +250,7 @@ def load_finetuned_model(
     # Wrap model in DataParallel (consistent with training setup)
     args, model = setup_model(args, model)
     
-    # Load checkpoint - always use load_checkpoint_with_module since setup_model
+    # Load checkpoint - always use load_checkpoint_with_module since setup_model in the original build
     # wraps our model in DP/DDP which adds the 'module' prefix to the model
     checkpoint = torch.load(checkpoint_path, map_location=f'cuda:{args.device}')
     model = load_checkpoint_with_module(model, checkpoint)
@@ -262,10 +262,6 @@ def run_inference(
     model: torch.nn.Module,
     dataloader: torch.utils.data.DataLoader,
     device: int = 0,
-    time: bool = False,
-    image: bool = False,
-    text: bool = False,
-    tab: bool = False,
 ) -> Dict[str, np.ndarray]:
     """Run inference on a dataset and return predictions.
 
@@ -273,10 +269,6 @@ def run_inference(
         model: Loaded LANISTR model
         dataloader: DataLoader containing the evaluation data
         device: GPU device to use
-        time: Whether timeseries data is used
-        image: Whether image data is used
-        text: Whether text data is used
-        tab: Whether tabular data is used
 
     Returns:
         Dictionary containing:
@@ -290,20 +282,11 @@ def run_inference(
     with torch.no_grad():
         for batch in tqdm.tqdm(dataloader, desc="Running inference"):
             # Prepare inputs
-            inputs = {}
-            if time:
-                inputs["padding_mask"] = batch["padding_mask"].cuda(device, non_blocking=True)
-                inputs["timeseries"] = batch["timeseries"].cuda(device, non_blocking=True)
-                inputs["noise_mask"] = batch["noise_mask"].cuda(device, non_blocking=True)
-            if image:
-                inputs["pixel_values"] = batch["pixel_values"].cuda(device, non_blocking=True)
-                inputs["bool_masked_positions"] = batch["bool_masked_positions"].cuda(device, non_blocking=True)
-            if text:
-                inputs["input_ids"] = batch["input_ids"].cuda(device, non_blocking=True)
-                inputs["attention_mask"] = batch["attention_mask"].cuda(device, non_blocking=True)
-            if tab:
-                inputs["features"] = batch["features"].cuda(device, non_blocking=True)
-
+            # Assuming we only run inference for finetuned models
+            inputs = {"labels": batch["labels"]}
+            for key in batch.keys():
+                if key not in ["labels"]:
+                    inputs[key] = batch[key].cuda(device, non_blocking=True)
             # Get predictions
             outputs = model(inputs)
             all_logits.append(outputs.logits.cpu().numpy())
@@ -318,7 +301,7 @@ def run_inference(
 
     # Concatenate results
     results = {
-        "logits": np.concatenate(all_logits, axis=0)
+        "outputs": np.concatenate(all_logits, axis=0)
     }
     
     if all_labels:
