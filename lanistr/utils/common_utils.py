@@ -95,7 +95,7 @@ def get_metrics(args):
           args.device
       )
 
-    if not getattr(args, "dataset_name", False):
+    if not hasattr(args, "dataset_name"):
       _metric = args.perf_metric
       metric_names.append(_metric)
       for phase in ["train", "test"]:
@@ -525,9 +525,9 @@ def load_checkpoint(
   """
   new_state_dict = collections.OrderedDict()
   keys_to_fill = current_model.state_dict().keys()
-  for k, v in best_checkpoint.items():
+  for chkpoint_k, chkpoint_v in best_checkpoint.items():
     if (
-        k.startswith("tabular_encoder.embedder.embeddings")
+        chkpoint_k.startswith("tabular_encoder.embedder.embeddings")
         and different_datasets
     ):
       continue
@@ -535,15 +535,15 @@ def load_checkpoint(
     if loading_pretrain_into_finetune:
       # This patch enables saving of a model with form tabular_encoder.encoder and loading it with form tabular_encoder.tabnet.encoder
       # to follow the messed up nesting convention of the existing codebase
-      if k not in keys_to_fill:
-        tabnet_patched_key = k.replace("tabular_encoder", "tabular_encoder.tabnet")
+      if chkpoint_k not in keys_to_fill:
+        tabnet_patched_key = chkpoint_k.replace("tabular_encoder", "tabular_encoder.tabnet")
         if tabnet_patched_key in keys_to_fill:
-          new_state_dict[tabnet_patched_key] = v
+          new_state_dict[tabnet_patched_key] = chkpoint_v
         # Don't add the key to the new state dict if it's not in the keys_to_fill - this avoids trying to load in the decoder
         continue
-      new_state_dict[k] = v
+      new_state_dict[chkpoint_k] = chkpoint_v
     else:
-      new_state_dict[k] = v
+      new_state_dict[chkpoint_k] = chkpoint_v
 
   strict_load = False
   if loading_pretrain_into_finetune:
