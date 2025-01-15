@@ -280,22 +280,49 @@ def build_model(
     print_model_size(multimodal_model, "pretraining with LANISTR - after freezing")
 
   elif args.task == "finetune":
-    pretrain_model = LANISTRMultiModalForPreTraining(
-        args=args,
-        image_encoder=image_encoder,
+    loading_finetuned_model = getattr(args, "loading_from_finetuned", False)
+    classifier = build_projector(
+        in_dim=mm_fusion.config.hidden_size,
+        hidden_dim=args.classifier_hidden_dim,
+        out_dim=args.num_classes,
+        projection_type="MLP",
+    )
+
+    print_model_size(classifier, "Classifier module")
+
+    lanistr_args = dict(
+      args=args,
+      image_encoder=image_encoder,
+      text_encoder=text_encoder,
+      tabular_encoder=tabular_encoder,
+      timeseries_encoder=timeseries_encoder,
+      mm_fusion=mm_fusion,
+      image_proj=image_proj,
+      text_proj=text_proj,
+      tabular_proj=tabular_proj,
+      time_proj=time_proj,
+    )
+
+    if loading_finetuned_model:
+      extra_args = dict(
+        classifier=classifier,
+      )
+      # Need classifier head
+      pretrain_model = LANISTRMultiModalModel(
+          **lanistr_args,
+          **extra_args,
+      )
+    else:
+      extra_args = dict(
         mim_head=mim_head,
-        text_encoder=text_encoder,
         mlm_head=mlm_head,
-        tabular_encoder=tabular_encoder, # Unclear to me how this works - as the tabular encoder is different between pretrain and finetune
-        timeseries_encoder=timeseries_encoder,
-        mm_fusion=mm_fusion,
-        image_proj=image_proj,
-        text_proj=text_proj,
-        tabular_proj=tabular_proj,
-        time_proj=time_proj,
         mm_proj=mm_proj,
         mm_predictor=mm_predictor,
-    )
+      )
+      pretrain_model = LANISTRMultiModalForPreTraining(
+          **lanistr_args,
+          **extra_args,
+      )
 
     if args.finetune_initialize_from == "pretrain":
       best_checkpoint_path = next(iter(Path(args.output_dir).glob("**/pretrain_chkpoint_best.pth")))
@@ -332,14 +359,6 @@ def build_model(
           "finetune_initialize_from should be either pretrain, random or a path to a trained model"
       )
 
-    classifier = build_projector(
-        in_dim=mm_fusion.config.hidden_size,
-        hidden_dim=args.classifier_hidden_dim,
-        out_dim=args.num_classes,
-        projection_type="MLP",
-    )
-
-    print_model_size(classifier, "Classifier module")
 
     multimodal_model = LANISTRMultiModalModel(
         args=args,
@@ -352,7 +371,7 @@ def build_model(
         text_proj=pretrain_model.text_proj,
         tabular_proj=pretrain_model.tabular_proj,
         time_proj=pretrain_model.time_proj,
-        classifier=classifier,
+        classifier=classifier if not loading_finetuned_model else pretrain_model.classifier,
     )
 
     print_model_size(
