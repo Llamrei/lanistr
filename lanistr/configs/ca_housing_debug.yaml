@@ -34,23 +34,23 @@ tab: true
 
 mm_encoder_trainable: true
 loading_from_finetuned: true # This should be true if finetune_intialize_from is pointing to a finetuned model
-finetune_initialize_from: /home/ma/a/al3615/projects/lanistr/lanistr/output_dir/ca_housing/ca_housing_pretrain_resnet/finetune_chkpoint_best.pth # random, pretrain or path to checkpoint
+finetune_initialize_from: random # random, pretrain or path to checkpoint
 # NOTE: Swap on pretrain/finetune to freeze for finetuning
-text_encoder_trainable: true
+text_encoder_trainable: false
 text_proj_trainable: true
 tabular_encoder_trainable: true
 tabular_proj_trainable: true
 
 output_dir: ./output_dir/ca_housing
-experiment_name: ca_housing_pretrain_resnet_test_transfer_learning
+experiment_name: ca_housing_resnet_finetune_only
 
 test_ratio: 0.1
 
 # If running with tabnet the batch size must be larger than 2*ngpus_per_node*2 as virtual batch size is set to 1/2 of the batch size
 # and batchnorm needs >=2 samples to compute the mean and variance
 # If finetuning with a lot of freezing - we will be storing less gradients so can increase batch size
-# For pretraining - works with 16 on 2 GPUS
-# For finetuning - works with 256 on 2 GPUS
+# For pretraining - works with 16 on 2 GPUS (uses approx 10GB VRAM each)
+# For finetuning - works with 256 on 2 GPUS (uses approx 10GB VRAM each)
 train_batch_size: 16
 eval_batch_size: 16
 test_batch_size: 16
