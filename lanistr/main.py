@@ -41,7 +41,7 @@ from lanistr.utils.data_utils import generate_loaders
 from lanistr.utils.model_utils import build_model
 from lanistr.utils.parallelism_utils import is_main_process
 from lanistr.utils.parallelism_utils import setup_model
-from lanistr.runners import run
+from lanistr.api import train
 
 warnings.filterwarnings("ignore")
 
@@ -52,7 +52,7 @@ set_global_logging_level(logging.ERROR, ["transformers"])
 
 
 def main() -> None:
-    """CLI Entry point for LANISTR training and evaluation.
+  """CLI Entry point for LANISTR training and evaluation.
 
     Handles command line argument parsing and initial setup for training/evaluating
     LANISTR models. This includes:
@@ -82,8 +82,7 @@ def main() -> None:
 
     Raises:
         NotImplementedError: If an unsupported dataset_name is specified
-    """
-  
+  """
   # Arguments
   parser = argparse.ArgumentParser(
       description="Multimodal Learning with LANISTR"
@@ -148,7 +147,7 @@ def main() -> None:
   dataset = load_dataset(args, tokenizer)
   how_long(tic)
 
-  run(
+  train(
     config_path=flags.config,
     dataset=dataset,
     overrides=flags.overrides,

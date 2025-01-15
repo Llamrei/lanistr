@@ -26,7 +26,7 @@ import omegaconf
 import pytz
 import torch
 import torchmetrics
-from utils.parallelism_utils import is_main_process
+from lanistr.utils.parallelism_utils import is_main_process
 
 
 logger = logging.getLogger(__name__)
@@ -95,14 +95,29 @@ def get_metrics(args):
           args.device
       )
 
-    if args.dataset_name.startswith("amazon"):
+    if not getattr(args, "dataset_name", False):
+      _metric = args.perf_metric
+      metric_names.append(_metric)
+      for phase in ["train", "test"]:
+        if _metric == "ACCURACY":
+          torch_metric = torchmetrics.Accuracy(
+              task="multiclass", num_classes=args.num_classes
+          ).to(args.device)
+        elif _metric == "RMSE":
+          torch_metric = torchmetrics.MeanSquaredError(
+              squared=False
+          ).to(args.device)
+        metrics[phase][_metric] = torch_metric
+
+
+    elif args.dataset_name.startswith("amazon"):
       metric_names.append("ACCURACY")
       for phase in ["train", "test"]:
         metrics[phase]["ACCURACY"] = torchmetrics.Accuracy(
             task="multiclass", num_classes=args.num_classes
         ).to(args.device)
     
-    if args.dataset_name.startswith("ca"):
+    elif args.dataset_name.startswith("ca"):
       metric_names.append("RMSE")
       for phase in ["train", "test"]:
         metrics[phase]["RMSE"] = torchmetrics.MeanSquaredError(
@@ -583,3 +598,4 @@ def set_global_logging_level(level=logging.ERROR, prefices=None):
   for name in logging.root.manager.loggerDict:
     if re.match(prefix_re, name):
       logging.getLogger(name).setLevel(level)
+

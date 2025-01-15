@@ -6,8 +6,10 @@ import random
 import pathlib
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Any
 
+import tqdm
+import numpy as np
 import omegaconf
 import torch
 import torch.distributed
@@ -17,6 +19,7 @@ from torch.utils import data
 
 from lanistr.utils.common_utils import how_long
 from lanistr.utils.common_utils import print_config
+from lanistr.utils.common_utils import load_checkpoint_with_module
 from lanistr.utils.data_utils import generate_loaders
 from lanistr.utils.model_utils import build_model
 from lanistr.utils.parallelism_utils import is_main_process
@@ -25,7 +28,7 @@ from lanistr.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
-def run(
+def train(
     config_path: str,
     dataset: torch.utils.data.Dataset,
     overrides: List[str] = None,
@@ -67,6 +70,11 @@ def run(
   - Distributed training settings (world_size, backend, etc.)
   - Output and logging directories
   Examples can be found in the lanistr/configs directory. Most up to date is the `ca_housing_debug.yaml` file.
+
+  Models trained will be saved to `output_dir/experiment_name/`
+  with the filename being either `finetune_chkpoint.pth` or `pretrain_chkpoint.pth`
+  or `finetune_chkpoint_best.pth`/`pretrain_chkpoint_best.pth`
+  The former is used for restarting training from a checkpoint, the latter is used for the best checkpoint
   """
 
 
@@ -204,3 +212,115 @@ def main_worker(
 
   else:
     raise ValueError(f"Task {args.task} not implemented.")
+
+def load_finetuned_model(
+    config_path: str,
+    checkpoint_path: str,
+    tabular_data_information: Dict[str, Any],
+    overrides: List[str] = None,
+) -> torch.nn.Module:
+    """Loads a finetuned LANISTR model from a checkpoint.
+
+    Args:
+        config_path: Path to the YAML config file used for training
+        checkpoint_path: Path to the checkpoint file containing model weights
+        tabular_data_information: Dictionary containing tabular data metadata:
+            - 'input_dim': Dimension of the tabular data
+            - 'cat_idxs': Indices of categorical features
+            - 'cat_dims': Dimensions of categorical features
+        overrides: Optional list of key=value pairs to override config values
+
+    Returns:
+        torch.nn.Module: The loaded LANISTR model
+    """
+    # Load and merge configuration
+    args = omegaconf.OmegaConf.load(config_path)
+    if overrides:
+        args = omegaconf.OmegaConf.merge(args, omegaconf.OmegaConf.from_cli(overrides))
+    
+    # Force single GPU mode
+    args.distributed = False
+    args.local_rank = 0
+    args.device = 0
+    
+    # Build the model
+    model = build_model(args, tabular_data_information)
+    
+    # Wrap model in DataParallel (consistent with training setup)
+    args, model = setup_model(args, model)
+    
+    # Load checkpoint - always use load_checkpoint_with_module since setup_model
+    # wraps our model in DP/DDP which adds the 'module' prefix to the model
+    checkpoint = torch.load(checkpoint_path, map_location=f'cuda:{args.device}')
+    model = load_checkpoint_with_module(model, checkpoint)
+    
+    model.eval()
+    return model
+
+def run_inference(
+    model: torch.nn.Module,
+    dataloader: torch.utils.data.DataLoader,
+    device: int = 0,
+    time: bool = False,
+    image: bool = False,
+    text: bool = False,
+    tab: bool = False,
+) -> Dict[str, np.ndarray]:
+    """Run inference on a dataset and return predictions.
+
+    Args:
+        model: Loaded LANISTR model
+        dataloader: DataLoader containing the evaluation data
+        device: GPU device to use
+        time: Whether timeseries data is used
+        image: Whether image data is used
+        text: Whether text data is used
+        tab: Whether tabular data is used
+
+    Returns:
+        Dictionary containing:
+            - 'logits': Model predictions (n_samples, n_outputs)
+            - 'labels': Ground truth labels if provided (n_samples,)
+    """
+    model.eval()
+    all_logits = []
+    all_labels = []
+
+    with torch.no_grad():
+        for batch in tqdm.tqdm(dataloader, desc="Running inference"):
+            # Prepare inputs
+            inputs = {}
+            if time:
+                inputs["padding_mask"] = batch["padding_mask"].cuda(device, non_blocking=True)
+                inputs["timeseries"] = batch["timeseries"].cuda(device, non_blocking=True)
+                inputs["noise_mask"] = batch["noise_mask"].cuda(device, non_blocking=True)
+            if image:
+                inputs["pixel_values"] = batch["pixel_values"].cuda(device, non_blocking=True)
+                inputs["bool_masked_positions"] = batch["bool_masked_positions"].cuda(device, non_blocking=True)
+            if text:
+                inputs["input_ids"] = batch["input_ids"].cuda(device, non_blocking=True)
+                inputs["attention_mask"] = batch["attention_mask"].cuda(device, non_blocking=True)
+            if tab:
+                inputs["features"] = batch["features"].cuda(device, non_blocking=True)
+
+            # Get predictions
+            outputs = model(inputs)
+            all_logits.append(outputs.logits.cpu().numpy())
+            
+            # Store labels if they exist
+            if "labels" in batch:
+                if batch["labels"].ndim > 1:
+                    labels = batch["labels"].squeeze(1)
+                else:
+                    labels = batch["labels"]
+                all_labels.append(labels.cpu().numpy())
+
+    # Concatenate results
+    results = {
+        "logits": np.concatenate(all_logits, axis=0)
+    }
+    
+    if all_labels:
+        results["labels"] = np.concatenate(all_labels, axis=0)
+
+    return results

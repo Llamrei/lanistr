@@ -16,22 +16,22 @@ limitations under the License.
 import os
 from pathlib import Path
 
-from third_party.mvts_transformer.timeseries_encoder import TimeSeriesEncoder
-from third_party.tabnet.tabular_encoder import TabNet
-from third_party.tabnet.tabular_encoder import TabNetPretraining
-from model.lanistr_utils import BertOnlyMLMHead as mlm_head
-from model.lanistr_utils import build_projector
-from model.lanistr_utils import ViTForMaskedImageModelingDecoder as mim_head
-from model.modeling_lanistr import LANISTRMultiModalForPreTraining
-from model.modeling_lanistr import LANISTRMultiModalModel
-from model.modules.classifier import PredictionMLP
-from model.tabular_resnet import TabularResNet
+from lanistr.third_party.mvts_transformer.timeseries_encoder import TimeSeriesEncoder
+from lanistr.third_party.tabnet.tabular_encoder import TabNet
+from lanistr.third_party.tabnet.tabular_encoder import TabNetPretraining
+from lanistr.model.lanistr_utils import BertOnlyMLMHead as mlm_head
+from lanistr.model.lanistr_utils import build_projector
+from lanistr.model.lanistr_utils import ViTForMaskedImageModelingDecoder as mim_head
+from lanistr.model.modeling_lanistr import LANISTRMultiModalForPreTraining
+from lanistr.model.modeling_lanistr import LANISTRMultiModalModel
+from lanistr.model.modules.classifier import PredictionMLP
+from lanistr.model.tabular_resnet import TabularResNet
 import omegaconf
 import torch
 import transformers
-from utils.common_utils import load_checkpoint
-from utils.common_utils import print_model_size
-from utils.common_utils import print_only_by_main_process
+from lanistr.utils.common_utils import load_checkpoint
+from lanistr.utils.common_utils import print_model_size
+from lanistr.utils.common_utils import print_only_by_main_process
 
 def build_model(
     args: omegaconf.DictConfig, tabular_data_information

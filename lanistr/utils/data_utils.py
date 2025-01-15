@@ -20,7 +20,7 @@ import omegaconf
 import torch
 from torchvision import transforms
 import transformers
-from utils.parallelism_utils import is_main_process
+from lanistr.utils.parallelism_utils import is_main_process
 
 
 logger = logging.getLogger(__name__)
