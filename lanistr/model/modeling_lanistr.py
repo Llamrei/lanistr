@@ -130,12 +130,15 @@ class LANISTRMultiModalForPreTraining(nn.Module):
 
     ##========================= MLM ================================##
     if self.args.text:
-      batch['input_ids'] = batch['input_ids'].squeeze(1)
-      batch['attention_mask'] = batch['attention_mask'].squeeze(1)
+      # Handle multiple text inputs
+      batch_size = batch['input_ids'].shape[0]
+      text_num = batch['input_ids'].shape[1]
+      text_contents = batch['input_ids'].flatten(start_dim=0, end_dim=1)
+      attention_mask = batch['attention_mask'].flatten(start_dim=0, end_dim=1)
+
 
       # Preparing inputs and labels for MLM
-      batch_size = batch['input_ids'].shape[0]
-      input_ids = batch['input_ids'].clone()
+      input_ids = text_contents.clone()
       mlm_labels = input_ids.clone()
       # create random array of floats with equal dimensions to input_ids tensor
       rand = torch.rand(input_ids.shape).to(running_device)
@@ -151,18 +154,18 @@ class LANISTRMultiModalForPreTraining(nn.Module):
 
       selection = [
           torch.flatten(mask_arr[i].nonzero()).tolist()
-          for i in range(batch_size)
+          for i in range(batch_size * text_num)
       ]
 
       # Then apply these indices to each respective row in input_ids, assigning
       # each of the values at these indices as 103.
-      for i in range(batch_size):
+      for i in range(batch_size * text_num):
         input_ids[i, selection[i]] = 103
 
       # input ids are now ready to be fed into the MLM encoder
       mlm_outputs = self.text_encoder(
           input_ids=input_ids,
-          attention_mask=batch['attention_mask'],
+          attention_mask=attention_mask,
           return_dict=True,
       )
 
@@ -179,21 +182,24 @@ class LANISTRMultiModalForPreTraining(nn.Module):
       mlm_text_embeddings = self.text_proj(
           mlm_last_hidden_states[:, self.target_token_idx, :]
       )
-      mlm_text_embeddings = F.normalize(mlm_text_embeddings, dim=1)
-      masked_embeds.append(mlm_text_embeddings.unsqueeze(dim=1))
+      mlm_text_embeddings = mlm_text_embeddings.reshape(batch_size, text_num, -1)
+      mlm_text_embeddings = F.normalize(mlm_text_embeddings, dim=-1)
+      masked_embeds.append(mlm_text_embeddings)
+
 
       # forwarding non_masked inputs:
       outputs = self.text_encoder(
-          input_ids=batch['input_ids'],
-          attention_mask=batch['attention_mask'],
+          input_ids=text_contents,
+          attention_mask=attention_mask,
       )
       last_hidden_state = outputs.last_hidden_state
       text_embeddings = self.text_proj(
           last_hidden_state[:, self.target_token_idx, :]
       )
 
-      text_embeddings = F.normalize(text_embeddings, dim=1)
-      embeds.append(text_embeddings.unsqueeze(dim=1))
+      text_embeddings = text_embeddings.reshape(batch_size, text_num, -1)
+      text_embeddings = F.normalize(text_embeddings, dim=-1)
+      embeds.append(text_embeddings)
 
     ##============================= MIM =====================================##
     if self.args.image:
